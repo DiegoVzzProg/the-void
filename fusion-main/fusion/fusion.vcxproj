@@ -80,8 +80,8 @@
     <IntDir>$(ProjectDir)build\etc\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(ProjectDir)build\</OutDir>
-    <IntDir>$(ProjectDir)build\etc\</IntDir>
+    <OutDir>D:\Documentos\the-void\x64\Debug</OutDir>
+    <IntDir>D:\Documentos\the-void\x64\Debug\etc</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(ProjectDir)build\</OutDir>
@@ -152,6 +152,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\base\patcher\buffer.h" />
     <ClInclude Include="src\base\patcher\data.h" />
     <ClInclude Include="src\base\patcher\miniz.h" />
     <ClInclude Include="src\base\patcher\patcher.h" />

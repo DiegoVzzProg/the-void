@@ -9,6 +9,12 @@ namespace Patcher
 		inline jobject EMPTY_MAP = nullptr;
 		inline jclass EntityRenderer_class = nullptr;
 
+		inline static jclass g_MapClass = nullptr;
+		inline static jmethodID g_MapPut = nullptr;
+		inline static jmethodID g_MapRemove = nullptr;
+		inline static jobject g_ConcurrentMap = nullptr;
+		inline static jobject g_HashMap = nullptr;
+
 		void loadJar(jobject classLoader, const unsigned char* jarBytes, size_t size);
 		void gc();
 		jobject newClassLoader();
@@ -30,4 +36,5 @@ namespace Patcher
 	void Init();
 	void Kill();
 	void put(const std::string& key, const std::string& value);
+	void remove(const std::string& key);
 }

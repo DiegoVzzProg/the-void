@@ -2,6 +2,8 @@
 #include "miniz.h"
 #include "data.h"
 #include <functional>
+#include "../../../ext/xorstr/xorstr.h"
+#include <iostream>
 
 namespace Patcher
 {
@@ -129,8 +131,29 @@ namespace Patcher
 			}
 		}
 	}
+
+	jobject getCleanClassLoader()
+	{
+		// Encriptamos las cadenas de Java Reflection
+		// En el binario, "java/net/URL" será basura ilegible hasta que se ejecute esta línea.
+		jclass urlClass = Java::Env->FindClass(xorstr("java/net/URL"));
+		jobjectArray emptyUrls = Java::Env->NewObjectArray(0, urlClass, nullptr);
+
+		jclass URLClassLoaderClass = Java::Env->FindClass(xorstr("java/net/URLClassLoader"));
+		jmethodID ctor = Java::Env->GetMethodID(URLClassLoaderClass, xorstr("<init>"), xorstr("([Ljava/net/URL;)V"));
+
+		jobject classLoader = Java::Env->NewObject(URLClassLoaderClass, ctor, emptyUrls);
+
+		Java::Env->DeleteLocalRef(urlClass);
+		Java::Env->DeleteLocalRef(emptyUrls);
+		Java::Env->DeleteLocalRef(URLClassLoaderClass);
+
+		return classLoader;
+	}
+
 	void Init()
 	{
+		// 1. Configuración de JVMTI (Estándar)
 		jvmtiCapabilities capabilities{};
 		capabilities.can_retransform_classes = JVMTI_ENABLE;
 		Java::tiEnv->AddCapabilities(&capabilities);
@@ -139,57 +162,109 @@ namespace Patcher
 		Java::tiEnv->SetEventCallbacks(&callbacks, sizeof(jvmtiEventCallbacks));
 		Java::tiEnv->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_CLASS_FILE_LOAD_HOOK, NULL);
 
-		//here I am using an empty map, already in the game, to hide and store my cheat data, the getMouseOver than accesses this map (see asm folder)
-		Java::AssignClass("net.minecraft.client.renderer.EntityRenderer", EntityRenderer_class);
-		jclass ThreadContext_class = Java::findClass(Java::Env, Java::tiEnv, "org/apache/logging/log4j/ThreadContext");
-		jfieldID EMPTY_MAP_ID = Java::Env->GetStaticFieldID(ThreadContext_class, "EMPTY_MAP", "Ljava/util/Map;");
-		original_EMPTY_MAP = Java::Env->GetStaticObjectField(EntityRenderer_class, EMPTY_MAP_ID);
-		
+		// 2. Obtener Clases Críticas
+		Java::AssignClass(xorstr("net.minecraft.client.renderer.EntityRenderer"), EntityRenderer_class);
 
-		jclass hashmap_class = Java::Env->FindClass("java/util/HashMap");
-		jmethodID constructor = Java::Env->GetMethodID(hashmap_class, "<init>", "()V");
-		EMPTY_MAP = Java::Env->NewObject(hashmap_class, constructor);
-		Java::Env->SetStaticObjectField(ThreadContext_class, EMPTY_MAP_ID, EMPTY_MAP);
-		Java::Env->DeleteLocalRef(hashmap_class);
+		// Usamos el helper findClass para buscar ThreadContext en todos los loaders
+		jclass ThreadContext_class = Java::findClass(Java::Env, Java::tiEnv, xorstr("org/apache/logging/log4j/ThreadContext"));
+
+		// ARREGLO 1: Validación estricta
+		if (!ThreadContext_class) {
+			// Si no lo encontramos, intentamos buscarlo manualmente por nombre JNI
+			ThreadContext_class = Java::Env->FindClass(xorstr("org/apache/logging/log4j/ThreadContext"));
+		}
+
+		if (!ThreadContext_class) return; // Si falla, abortamos para no crashear
+
+		jfieldID EMPTY_MAP_ID = Java::Env->GetStaticFieldID(ThreadContext_class, xorstr("EMPTY_MAP"), xorstr("Ljava/util/Map;"));
+
+		// ARREGLO 2: Corrección del error de JNI del código original.
+		// ANTES: GetStaticObjectField(EntityRenderer_class, ...) -> MAL
+		// AHORA: GetStaticObjectField(ThreadContext_class, ...) -> BIEN
+		original_EMPTY_MAP = Java::Env->GetStaticObjectField(ThreadContext_class, EMPTY_MAP_ID);
+
+		// 3. Crear el HashMap de reemplazo
+		jclass hashMapClass = Java::Env->FindClass(xorstr("java/util/HashMap"));
+		jmethodID constructor = Java::Env->GetMethodID(hashMapClass, xorstr("<init>"), xorstr("()V"));
+
+		jobject localHashMap = Java::Env->NewObject(hashMapClass, constructor);
+		g_HashMap = Java::Env->NewGlobalRef(localHashMap);
+
+		// 4. EL INTERCAMBIO (The Swap)
+		Java::Env->SetStaticObjectField(ThreadContext_class, EMPTY_MAP_ID, g_HashMap);
+
+		// 5. Inicializar el mapa con valores por defecto (ARREGLO PARA NULL POINTER)
+		// Esto evita el crash si el Java inyectado lee antes de que tú escribas algo.
+		jclass mapClass = Java::Env->FindClass(xorstr("java/util/Map"));
+		g_MapClass = (jclass)Java::Env->NewGlobalRef(mapClass);
+		g_MapPut = Java::Env->GetMethodID(mapClass, xorstr("put"), xorstr("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"));
+		g_MapRemove = Java::Env->GetMethodID(mapClass, xorstr("remove"), xorstr("(Ljava/lang/Object;)Ljava/lang/Object;"));
+
+		// Escribimos un valor por defecto seguro inmediatamente
+		put(xorstr("reach_distance"), xorstr("3.0"));
+
+		// Limpieza
+		Java::Env->DeleteLocalRef(localHashMap);
+		Java::Env->DeleteLocalRef(hashMapClass);
 		Java::Env->DeleteLocalRef(ThreadContext_class);
+		Java::Env->DeleteLocalRef(mapClass);
 
-		put("reach_distance", "3.0");
-
-		jobject classLoader = newClassLoader();
+		// 6. Cargar el Payload
+		jobject classLoader = getCleanClassLoader();
 		loadJar(classLoader, data, sizeof(data));
 
+		// Aplicar los cambios
 		retransformClasses();
 		Java::tiEnv->SetEventNotificationMode(JVMTI_DISABLE, JVMTI_EVENT_CLASS_FILE_LOAD_HOOK, NULL);
 
 		Java::Env->DeleteLocalRef(classLoader);
-		gc();
-		//delete classLoader ref and call garbage collector, so that our patcher class gets unloaded
 	}
+
 	void Kill()
 	{
+		// 1. Revertir cambios en la clase
 		retransformClasses();
 
-		jclass ThreadContext_class = Java::findClass(Java::Env, Java::tiEnv, "org/apache/logging/log4j/ThreadContext");
-		jfieldID EMPTY_MAP_ID = Java::Env->GetStaticFieldID(ThreadContext_class, "EMPTY_MAP", "Ljava/util/Map;");
+		// 2. Restaurar el mapa original
+		// Ciframos las cadenas para no ser detectados al descargar la DLL
+		jclass ThreadContext_class = Java::findClass(Java::Env, Java::tiEnv, xorstr("org/apache/logging/log4j/ThreadContext"));
+		jfieldID EMPTY_MAP_ID = Java::Env->GetStaticFieldID(ThreadContext_class, xorstr("EMPTY_MAP"), xorstr("Ljava/util/Map;"));
+
+		// Restauramos el objeto original que guardamos en Init
 		Java::Env->SetStaticObjectField(ThreadContext_class, EMPTY_MAP_ID, original_EMPTY_MAP);
 
+		// 3. Limpieza de memoria
 		Java::Env->DeleteLocalRef(ThreadContext_class);
-		Java::Env->DeleteLocalRef(original_EMPTY_MAP);
-		Java::Env->DeleteLocalRef(EMPTY_MAP);
-		Java::Env->DeleteLocalRef(EntityRenderer_class);
+
+		// Liberamos nuestras referencias globales
+		if (original_EMPTY_MAP) Java::Env->DeleteGlobalRef(original_EMPTY_MAP); // Importante: DeleteGlobalRef, no Local
+		if (g_HashMap) Java::Env->DeleteGlobalRef(g_HashMap);         // Borramos nuestra referencia al mapa fake
+		if (g_MapClass) Java::Env->DeleteGlobalRef(g_MapClass);
+
+		// Limpiamos la clase EntityRenderer si la guardamos como Global
+		if (EntityRenderer_class) Java::Env->DeleteGlobalRef(EntityRenderer_class);
 	}
+
 	void put(const std::string& key, const std::string& value)
 	{
-		jclass map_class = Java::Env->FindClass("java/util/Map");
-		jmethodID putID = Java::Env->GetMethodID(map_class, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
-		Java::Env->DeleteLocalRef(map_class);
+		// Seguridad: Usamos g_HashMap ahora
+		if (!g_HashMap || !g_MapPut) return;
 
 		jstring k = Java::Env->NewStringUTF(key.c_str());
 		jstring v = Java::Env->NewStringUTF(value.c_str());
-		jobject rs = Java::Env->CallObjectMethod(EMPTY_MAP, putID, k, v);
+
+		Java::Env->CallObjectMethod(g_HashMap, g_MapPut, k, v);
 
 		Java::Env->DeleteLocalRef(k);
 		Java::Env->DeleteLocalRef(v);
-		Java::Env->DeleteLocalRef(rs);
+	}
+
+	void remove(const std::string& key)
+	{
+		if (!g_HashMap || !g_MapRemove) return;
+
+		jstring k = Java::Env->NewStringUTF(key.c_str());
+		Java::Env->CallObjectMethod(g_HashMap, g_MapRemove, k);
+		Java::Env->DeleteLocalRef(k);
 	}
 }

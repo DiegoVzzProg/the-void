@@ -1,4 +1,4 @@
-#include "reach.h"
+﻿#include "reach.h"
 #include "../../../sdk/sdk.h"
 #include "../../commonData.h"
 #include "../../../util/logger.h"
@@ -7,6 +7,7 @@
 #include "../../../../../ext/imgui/imgui.h"
 #include "../../../menu/menu.h"
 #include "../../../patcher/patcher.h"
+#include "../../../../../ext/xorstr/xorstr.h"
 
 #include <chrono>
 
@@ -16,21 +17,30 @@
 std::chrono::steady_clock::time_point lastUpdate;
 void Reach::Update()
 {
-	static float prev_reach = -1.0f;
-	if (!Enabled)
-	{
-		if (!CommonData::SanityCheck()) return;
-		if (prev_reach != -1.0f)
-		{
-			Patcher::put("reach_distance", "3.0");
-			prev_reach = -1.0f;
-		}
-		return;
-	}
-	if (prev_reach == Reach::ReachDistance || !CommonData::SanityCheck())
-		return;
-	prev_reach = ReachDistance;
-	Patcher::put("reach_distance", std::to_string(ReachDistance));
+    static float prev_reach = -1.0f;
+    static bool was_enabled = false;
+
+    if (!Enabled)
+    {
+        if (was_enabled)
+        {
+            // Cifrado aqu� tambi�n: "reach_distance" no aparecer� en el binario
+            Patcher::remove(xorstr("reach_distance"));
+            prev_reach = -1.0f;
+            was_enabled = false;
+        }
+        return;
+    }
+
+    if (!CommonData::SanityCheck()) return;
+    was_enabled = true;
+
+    if (prev_reach != Reach::ReachDistance)
+    {
+        // Ciframos la clave
+        Patcher::put(xorstr("reach_distance"), std::to_string(Reach::ReachDistance));
+        prev_reach = Reach::ReachDistance;
+    }
 }
 
 
@@ -46,11 +56,11 @@ void Reach::RenderMenu()
 	{
 
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3);
-		Menu::DoToggleButtonStuff(230044, "Toggle Reach", &Reach::Enabled);
+        Menu::DoToggleButtonStuff(230044, "reach", &Reach::Enabled);
 
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5);
 		ImGui::Separator();
-		Menu::DoSliderStuff(560117, "Reach Distance", &Reach::ReachDistance, 0, 4);
+        Menu::DoSliderStuff(560117, "distance", &Reach::ReachDistance, 3, 3.5);
 
 	}
 	ImGui::EndChild();
