@@ -4,3 +4,9 @@ the-void-internal/the-void-internal/build
 x64
 .vs
 fusion-main/asm
+the_void_api/obj
+the_void_ui/the_void_ui/obj
+the_void_api/bin
+the_void_ui/the_void_ui/bin
+the_void_ui/the_void_ui.Client/bin
+the_void_ui/the_void_ui.Client/obj

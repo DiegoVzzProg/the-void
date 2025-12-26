@@ -1,0 +1,95 @@
+﻿@page "/"
+@inject HttpClient Http
+
+@* 
+@using the_void_ui.Client.Models
+@using the_void_ui.Client.Services
+@inject ArticulosService ArticulosService 
+*@
+
+@using System.Text.Json
+
+<PageTitle>Home</PageTitle>
+
+<h3>The Void - Cloud Control</h3>
+
+<div class="card" style="width: 18rem;">
+    <div class="card-body">
+        <h5 class="card-title">Combat: Reach</h5>
+        <p class="card-text">Extiende la distancia de golpe.</p>
+
+        <label>Distancia (3.0 - 6.0):</label>
+        <input type="number" @bind="reachValue" step="0.1" class="form-control" />
+        <br />
+
+        <button class="btn btn-danger" @onclick="ToggleReach">
+            @(isReachEnabled ? "Desactivar" : "Activar")
+        </button>
+    </div>
+</div>
+
+@if (statusMessage != null)
+{
+    <div class="alert alert-info mt-2">@statusMessage</div>
+}
+
+@code {
+    private double reachValue = 3.0;
+    private bool isReachEnabled = false;
+    private string statusMessage;
+
+    private async Task ToggleReach()
+    {
+        isReachEnabled = !isReachEnabled;
+
+        // Estructura del comando
+        var command = new
+        {
+            Module = "Reach",
+            Enabled = isReachEnabled,
+            Value = reachValue
+        };
+
+        // Enviar a la API (Cámbiame por tu puerto real de ASP.NET)
+        var response = await Http.PostAsJsonAsync("http://localhost:5010/api/command", command);
+
+        if (response.IsSuccessStatusCode)
+        {
+            statusMessage = $"Comando enviado: Reach {(isReachEnabled ? "ON" : "OFF")} ({reachValue})";
+        }
+        else
+        {
+            statusMessage = "Error: El cliente C++ no parece estar conectado.";
+        }
+    }
+    // private ArticulosModel parametros = new ArticulosModel
+    // {
+    //     pvalor = "",
+    //     pidc_sucursal = 1,
+    //     pidc_usuario = 314,
+    //     pagina = 0
+    // };
+
+    // private Dictionary<string, JsonElement>? resultados;
+    // private bool cargando = false;
+    // private bool busquedaRealizada = false;
+
+    // private async Task Buscar()
+    // {
+    //     cargando = true;
+    //     busquedaRealizada = true;
+
+    //     resultados = await ArticulosService.BuscarArticulosAsync(parametros);
+
+    //     cargando = false;
+    // }
+
+    // private string ObtenerValor(JsonElement item, string propiedad)
+    // {
+    //     if (item.TryGetProperty(propiedad, out var valor))
+    //     {
+    //         return valor.ToString();
+    //     }
+    //     return "--";
+    // }
+}
