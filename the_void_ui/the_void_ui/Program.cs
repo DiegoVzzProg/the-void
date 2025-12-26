@@ -13,7 +13,7 @@ namespace the_void_ui
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://localhost:5010") });
 
             #region Services
-            builder.Services.AddScoped<ArticulosService>();
+            builder.Services.AddScoped<ModulosService>();
             #endregion
 
             // Add services to the container.
