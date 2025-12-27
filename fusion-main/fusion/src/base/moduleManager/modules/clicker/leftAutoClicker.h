@@ -13,6 +13,7 @@ struct LeftAutoClicker
 
 	static void Update();
 	static void RenderMenu();
+	static void AutoBlockHit();
 
 	static CommonData::PlayerData GetBestTarget(float fov, float range); 
 };

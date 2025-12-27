@@ -22,5 +22,7 @@ void ModuleManager::UpdateModules()
 	Reach::Update();
 
 	LeftAutoClicker::Update();
+	LeftAutoClicker::AutoBlockHit();
+
 	RightAutoClicker::Update();
 }

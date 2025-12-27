@@ -114,40 +114,28 @@ void LeftAutoClicker::Update()
     }
 }
 
-// --- FUNCIÓN PRIVADA DE DETECCIÓN (Copiada y adaptada para vivir aquí) ---
-// --- FUNCIÓN PRIVADA DE DETECCIÓN (CORREGIDA) ---
 CommonData::PlayerData LeftAutoClicker::GetBestTarget(float fov, float range)
 {
     CommonData::PlayerData bestTarget;
-    // Inicializamos explícitamente a null/vacío según tu SDK
-    // Si 'obj' es un puntero o wrapper, asegurate de que esto compile. 
-    // Si da error, simplemente no asignes nada, bestTarget por defecto estará vacía.
-    // bestTarget.obj = nullptr; 
 
     CEntityPlayerSP* thePlayer = SDK::Minecraft->thePlayer;
     if (!thePlayer) return bestTarget;
 
     Vector3 headPos = thePlayer->GetEyePos();
-    Vector3 myPos = thePlayer->GetPos(); // Necesario para calcular distancia manual
+    Vector3 myPos = thePlayer->GetPos();
     Vector2 currentAngles = thePlayer->GetAngles();
 
-    // CORRECCIÓN 1: Quitamos 'const' para evitar errores de E1086 con GetInstance()
     std::vector<CommonData::PlayerData>& playerList = CommonData::nativePlayerList;
 
     float finalScore = FLT_MAX;
 
-    // CORRECCIÓN 2: Quitamos 'const' del iterador
     for (auto& player : playerList)
     {
-        // CORRECCIÓN 3: Validación segura de punteros
-        // Usamos GetInstance() para verificar si es válido
         if (!player.obj.GetInstance()) continue;
 
         if (Java::Env->IsSameObject(thePlayer->GetInstance(), player.obj.GetInstance())) continue;
         if (!thePlayer->CanEntityBeSeen(player.obj.GetInstance())) continue;
 
-        // CORRECCIÓN 4: Cálculo manual de distancia (Arregla error E0135)
-        // Distancia Euclidiana: sqrt((x2-x1)^2 + (y2-y1)^2 + (z2-z1)^2)
         float dx = myPos.x - player.pos.x;
         float dy = myPos.y - player.pos.y;
         float dz = myPos.z - player.pos.z;
@@ -158,13 +146,11 @@ CommonData::PlayerData LeftAutoClicker::GetBestTarget(float fov, float range)
         Vector3 targetPos = player.pos + Vector3(0, player.height / 2.0f, 0);
         Vector2 anglesToTarget = Math::getAngles(headPos, targetPos);
 
-        // Matemáticas de ángulo
         Vector2 diff = Math::vec_wrapAngleTo180(currentAngles.Invert() - anglesToTarget.Invert());
         float angleDiff = std::abs(diff.x) + std::abs(diff.y);
 
         if (angleDiff > fov) continue;
 
-        // Puntuación: Menor es mejor
         float score = angleDiff + (dist * 0.5f);
         if (score < finalScore) {
             finalScore = score;
@@ -172,6 +158,27 @@ CommonData::PlayerData LeftAutoClicker::GetBestTarget(float fov, float range)
         }
     }
     return bestTarget;
+}
+
+void LeftAutoClicker::AutoBlockHit()
+{
+    if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000)) {
+        return;
+    }
+
+    if (autoBlockHit)
+    {
+        std::uniform_int_distribution<int> chanceDist(0, 100);
+        if (chanceDist(rng) <= blockhitchance)
+        {
+            CommonData::PlayerData target = GetBestTarget(120.0f, 4.0f);
+
+            if (target.obj.GetInstance()) {
+                PostMessageA(Menu::HandleWindow, WM_RBUTTONDOWN, MK_RBUTTON, 0);
+                PostMessageA(Menu::HandleWindow, WM_RBUTTONUP, 0, 0);
+            }
+        }   
+    }
 }
 
 void LeftAutoClicker::RenderMenu()
@@ -188,10 +195,10 @@ void LeftAutoClicker::RenderMenu()
 		Menu::DoSliderStuff(3280, "min cps", &LeftAutoClicker::leftMinCps, 10, LeftAutoClicker::leftMaxCps);
 		Menu::DoSliderStuff(675, "max cps", &LeftAutoClicker::leftMaxCps, LeftAutoClicker::leftMinCps, 20);
 		Menu::DoToggleButtonStuff(2136, "ignore blocks", &LeftAutoClicker::ignoreBlocks);
-        // --- NUEVA SECCIÓN BLOCKHIT ---
+        
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
         ImGui::Separator();
-        ImGui::TextDisabled("Extras"); // Un pequeño título decorativo
+        ImGui::TextDisabled("Extras");
         Menu::DoToggleButtonStuff(99110, "Auto BlockHit", &LeftAutoClicker::autoBlockHit);
 
         // Solo mostramos el slider de chance si el BlockHit está activo (QoL)
