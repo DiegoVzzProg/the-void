@@ -1,0 +1,27 @@
+{
+    "type": "module",
+    "name": "the_void_server",
+    "version": "1.0.0",
+    "description": "",
+    "main": "dist/app.js",
+    "scripts": {
+        "start": "node dist/app.js",
+        "dev": "node --loader ts-node/esm src/app.ts",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "tsc",
+        "clean": "tsc --build --clean"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@types/express": "^5.0.6",
+        "@types/node": "^25.0.3",
+        "eslint": "^9.39.2",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.9.3"
+    },
+    "dependencies": {
+        "express": "^5.2.1"
+    }
+}

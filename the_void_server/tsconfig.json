@@ -1,0 +1,35 @@
+{
+    "compilerOptions": {
+        // 1. ORGANIZACIÓN DE ARCHIVOS (Importante para mantener el orden)
+        "rootDir": "./src", // Tu código TS irá aquí
+        "outDir": "./dist", // El código JS generado irá aquí
+
+        // 2. CONFIGURACIÓN DEL ENTORNO
+        "module": "nodenext", // Moderno, ideal para Node reciente
+        "target": "esnext", // Usa las últimas funciones de JS
+
+        // 3. TIPOS (Necesario para que entienda Node.js)
+        "lib": [ "esnext" ],
+        "types": [ "node" ], // Habilita los tipos de Node
+
+        // OTROS OUTPUTS
+        "sourceMap": true, // Permite depurar (breakpoints) en VS
+        "declaration": true,
+
+        // OPCIONES DE ESTRICTEZ (Están muy bien, las dejé igual)
+        "noUncheckedIndexedAccess": true,
+        "exactOptionalPropertyTypes": true,
+        "strict": true,
+
+        // OPCIONES RECOMENDADAS
+        "verbatimModuleSyntax": false,
+        "isolatedModules": true,
+        "noUncheckedSideEffectImports": true,
+        "moduleDetection": "force",
+        "skipLibCheck": true
+
+        // NOTA: Borré la línea "jsx" porque es una API, no un Frontend.
+    },
+    // Asegúrate de incluir solo la carpeta de tu código fuente
+    "include": [ "src/**/*" ]
+}

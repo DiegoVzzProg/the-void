@@ -10,3 +10,5 @@ the_void_api/bin
 the_void_ui/the_void_ui/bin
 the_void_ui/the_void_ui.Client/bin
 the_void_ui/the_void_ui.Client/obj
+the_void_server/node_modules
+the_void_web/obj
