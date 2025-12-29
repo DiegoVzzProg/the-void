@@ -2,12 +2,11 @@
 #include "../../../sdk/sdk.h"
 #include "../../../menu/menu.h"
 #include "../../../util/logger.h"
-#include "../../../menu/menu.h"
 #include "../../../../../ext/xorstr/xorstr.h"
 
-#include <chrono>
 #include <random>
 #include "../../../util/math/math.h"
+#include "../../../web/web.h"
 
 // Variables estáticas para mantener el estado entre frames
 static std::mt19937 rng(std::random_device{}());
@@ -20,16 +19,46 @@ int nextCps = 10;
 
 void LeftAutoClicker::Update()
 {
-    // 1. Validaciones de Seguridad
+
+    {
+        std::lock_guard<std::mutex> lock(Web::candado);
+
+        // Verificamos si hay un comando nuevo Y si el JSON no está vacío
+        if (Web::is_new_command && !Web::module_manager_value.is_null()) {
+
+            if (Web::module_manager_value.contains("module")) {
+
+                std::string targetModule = Web::module_manager_value["module"];
+                
+                if (targetModule == "auto-clicker") {
+
+                    std::cout << "[Clicker] Actualizando configuración..." << std::endl;
+
+                    if (Web::module_manager_value.contains("enabled")) {
+                        Enabled = Web::module_manager_value["enabled"];
+                    }
+
+                    if (Web::module_manager_value.contains("value")) {
+                        float val = Web::module_manager_value["value"];
+                        leftMaxCps = val;
+                        leftMinCps = (val > 4) ? val - 3 : 1;
+                    }
+
+                    Web::is_new_command = false;
+                    Web::module_manager_value = nullptr;
+                }
+            }
+        }
+    }
+
     if (!Enabled) return;
     if (Menu::Open) return;
     if (SDK::Minecraft->IsInGuiState()) return;
     if (ignoreBlocks && SDK::Minecraft->GetMouseOver().IsTypeOfBlock()) return;
 
-    // Verificar si el usuario físico mantiene el clic izquierdo
     if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000)) {
         isMouseDown = false;
-        nextClickTime = 0; // Reseteamos el ritmo para que no clickee de golpe al volver a presionar
+        nextClickTime = 0;
         return;
     }
 
@@ -46,7 +75,6 @@ void LeftAutoClicker::Update()
         POINT pos_cursor;
         GetCursorPos(&pos_cursor);
 
-        // Usamos PostMessage para no bloquear el hilo del juego
         PostMessageA(Menu::HandleWindow, WM_LBUTTONUP, 0, MAKELPARAM(pos_cursor.x, pos_cursor.y));
         isMouseDown = false;
     }
@@ -59,29 +87,6 @@ void LeftAutoClicker::Update()
 
         PostMessageA(Menu::HandleWindow, WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM(pos_cursor.x, pos_cursor.y));
         isMouseDown = true;
-
-        if (autoBlockHit)
-        {
-            // Solo intentamos bloquear si tenemos espada (opcional, pero recomendado)
-            // if (SDK::Minecraft->thePlayer->IsHoldingSword()) 
-            {
-                // Tirar dados de probabilidad (ej: 50%)
-                std::uniform_int_distribution<int> chanceDist(0, 100);
-                if (chanceDist(rng) <= blockhitchance)
-                {
-                    // Buscar enemigo válido cerca (Rango 4 bloques, FOV 120)
-                    CommonData::PlayerData target = GetBestTarget(120.0f, 4.0f);
-
-                    if (target.obj.GetInstance()) { // <--- CAMBIO AQUÍ: Usar GetInstance() como booleano
-                        // Enviamos Clic Derecho (Bloquear)
-                        PostMessageA(Menu::HandleWindow, WM_RBUTTONDOWN, MK_RBUTTON, 0);
-
-                        // Soltamos el bloqueo
-                        PostMessageA(Menu::HandleWindow, WM_RBUTTONUP, 0, 0);
-                    }
-                }
-            }
-        }
 
         // --- MATEMÁTICAS CORREGIDAS (DISTRIBUCIÓN REALISTA) ---
 
@@ -109,8 +114,8 @@ void LeftAutoClicker::Update()
         if (holdTime >= cycleDuration) holdTime = cycleDuration - 5;
 
         // D. Asignar Tiempos Futuros
-        nextReleaseTime = now + holdTime;       // ¿Cuándo soltamos? Dentro de un rato
-        nextClickTime = now + cycleDuration;    // ¿Cuándo inicia el SIGUIENTE clic? Al final del ciclo completo
+        nextReleaseTime = now + holdTime;
+        nextClickTime = now + cycleDuration;
     }
 }
 
@@ -160,25 +165,28 @@ CommonData::PlayerData LeftAutoClicker::GetBestTarget(float fov, float range)
     return bestTarget;
 }
 
+
 void LeftAutoClicker::AutoBlockHit()
 {
-    if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000)) {
-        return;
-    }
+    if (!autoBlockHit) return;
+    if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000)) return;
 
-    if (autoBlockHit)
-    {
-        std::uniform_int_distribution<int> chanceDist(0, 100);
-        if (chanceDist(rng) <= blockhitchance)
-        {
-            CommonData::PlayerData target = GetBestTarget(120.0f, 4.0f);
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - LeftAutoClicker::lastBlockTime).count();
 
-            if (target.obj.GetInstance()) {
-                PostMessageA(Menu::HandleWindow, WM_RBUTTONDOWN, MK_RBUTTON, 0);
-                PostMessageA(Menu::HandleWindow, WM_RBUTTONUP, 0, 0);
-            }
-        }   
-    }
+    if (elapsed < nextBlockDelay) return;
+
+    CommonData::PlayerData target = GetBestTarget(120.0f, 3.3f);
+
+    if (!target.obj.GetInstance()) return;
+
+    PostMessageA(Menu::HandleWindow, WM_RBUTTONDOWN, MK_RBUTTON, 0);
+    PostMessageA(Menu::HandleWindow, WM_RBUTTONUP, 0, 0);
+
+    lastBlockTime = now;
+
+    std::uniform_int_distribution<int> randomDelay(900, 1100);
+    nextBlockDelay = randomDelay(rng);
 }
 
 void LeftAutoClicker::RenderMenu()

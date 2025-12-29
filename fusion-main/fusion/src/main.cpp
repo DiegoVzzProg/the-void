@@ -3,6 +3,12 @@
 #include <iostream>
 #include <cstdio>
 
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "Crypt32.lib")
+#pragma comment(lib, "Bcrypt.lib")
+// A veces necesarias dependiendo de la versión de Windows SDK:
+#pragma comment(lib, "Shlwapi.lib")
+
 // 1. Función para asignar la consola (OpSec: Eliminar en versión Release final)
 void CreateDebugConsole()
 {

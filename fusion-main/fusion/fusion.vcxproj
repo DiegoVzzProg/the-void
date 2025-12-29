@@ -87,6 +87,13 @@
     <OutDir>$(ProjectDir)build\</OutDir>
     <IntDir>$(ProjectDir)build\etc\</IntDir>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <VcpkgUseStatic>true</VcpkgUseStatic>
+    <VcpkgTriplet>x64-windows-static</VcpkgTriplet>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <VcpkgUseStatic>true</VcpkgUseStatic>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -123,14 +130,15 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;IXWEBSOCKET_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(ProjectDir)ext\jni\jvm.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)ext\jni\jvm.lib;opengl32.lib;Crypt32.lib;Bcrypt.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -142,6 +150,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -215,6 +224,7 @@
     <ClInclude Include="src\base\util\math\geometry.h" />
     <ClInclude Include="src\base\util\math\math.h" />
     <ClInclude Include="src\base\util\math\worldToScreen.h" />
+    <ClInclude Include="src\base\web\web.h" />
     <ClInclude Include="src\main.h" />
     <ClInclude Include="src\base\sdk\java\lang\String.h" />
     <ClInclude Include="src\base\sdk\net\minecraft\world\World.h" />
@@ -272,6 +282,7 @@
     <ClCompile Include="src\base\base.cpp" />
     <ClCompile Include="src\base\util\math\math.cpp" />
     <ClCompile Include="src\base\util\math\worldToScreen.cpp" />
+    <ClCompile Include="src\base\web\web.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\base\sdk\net\minecraft\world\World.cpp" />
     <ClCompile Include="src\base\sdk\net\minecraft\client\multiplayer\WorldClient.cpp" />

@@ -222,7 +222,10 @@
     <ClInclude Include="src\base\patcher\data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ext\xorstr\xorstr.h">
+    <ClInclude Include="src\base\patcher\buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\base\web\web.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -384,6 +387,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\base\patcher\miniz.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\base\web\web.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

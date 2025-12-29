@@ -13,6 +13,7 @@
 
 #include <thread>
 #include <unordered_map>
+#include "web/web.h"
 
 bool IsKeyReleased(int key)
 {
@@ -36,6 +37,7 @@ void Base::Init()
 	ModuleManager::Init();
 
 	Base::Running = true;
+	Web::Init();
 
 	while (Base::Running)
 	{
@@ -56,6 +58,6 @@ void Base::Kill()
 	Java::Kill();
 	Menu::Kill();
 	Logger::Kill();
-
+	Web::Cleanup();
 	MH_Uninitialize();
 }
