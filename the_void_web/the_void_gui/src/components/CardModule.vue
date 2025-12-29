@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { Axe, Mouse } from 'lucide-vue-next';
+import { Axe, Handshake, Mouse, UnfoldHorizontal } from 'lucide-vue-next';
 import ToogleSwitch from './ToogleSwitch.vue';
 import { ref } from 'vue';
 
 type IconName = keyof typeof iconMap;
 const iconMap = {
     Mouse,
-    Axe
+    Axe,
+    Handshake,
+    UnfoldHorizontal
 };
 
 const emits = defineEmits<{
@@ -33,8 +35,8 @@ const onModuleActive = () => {
 </script>
 
 <template>
-    <div
-        class="flex flex-col w-full max-md:min-w-full h-full md:h-[240px] bg-white/3 transition-all duration-300 rounded-3xl overflow-hidden border border-[#232732]">
+    <div style="interpolate-size: allow-keywords;"
+        class="flex flex-col w-full max-md:min-w-full min-h-[470px] h-full bg-white/3 transition-all duration-300 rounded-3xl overflow-hidden border border-[#232732]">
         <div class="flex justify-between items-center gap-3 p-4 bg-black/40">
             <div class="flex items-center gap-3">
                 <span class="p-3 rounded-xl bg-black/40 border border-white/10">
@@ -45,7 +47,7 @@ const onModuleActive = () => {
             <ToogleSwitch v-model="checkedModule" v-on:change="onModuleActive" />
         </div>
 
-        <div class="flex flex-col flex-1 p-4">
+        <div class="flex flex-col flex-1 px-4 pt-2 pb-4 overflow-auto">
             <slot></slot>
         </div>
     </div>

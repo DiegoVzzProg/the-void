@@ -1,7 +1,7 @@
 const { sendCommand } = require("../websocket/wsManager");
 
 const processCommand = (req, res) => {
-  const command = req.body; // { Module: "Reach", Enabled: true, ... }
+  const command = req.body;
 
   console.log(`[API] Comando recibido: ${JSON.stringify(command)}`);
 

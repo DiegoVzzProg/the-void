@@ -41,15 +41,8 @@ function onChange(event: Event) {
 <template>
     <div class="flex w-full">
         <label class="slider w-full">
-            <input
-                type="range"
-                class="level"
-                :min="minValue"
-                :max="maxValue"
-                v-model.number="innerValue"
-                :style="{ '--percentage': percentage + '%' }"
-                @change="onChange"
-            />
+            <input type="range" class="level" :min="minValue" :max="maxValue" v-model.number="innerValue"
+                :style="{ '--percentage': percentage + '%' }" @change="onChange" />
         </label>
     </div>
 </template>

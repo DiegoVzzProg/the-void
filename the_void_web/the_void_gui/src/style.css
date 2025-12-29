@@ -5,6 +5,7 @@
 *::after,
 *::before {
   box-sizing: border-box;
+  outline: none;
 }
 
 html,
@@ -32,4 +33,37 @@ body {
   font-family: "Google Sans Code", monospace;
   font-optical-sizing: auto;
   font-style: normal;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.5);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.7);
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #6366f1 0%, #a3afe0 50%, #6366f1 100%);
+
+  background-size: 200% auto;
+
+  background-clip: text;
+  -webkit-background-clip: text;
+
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+
+  animation: shine 3s linear infinite;
+}
+
+@keyframes shine {
+  to {
+    background-position: 200% center;
+  }
 }

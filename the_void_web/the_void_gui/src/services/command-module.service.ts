@@ -12,21 +12,18 @@ export class CommandModuleService {
   }
 
   public async Command(
-    module: string,
-    enabled: boolean,
-    value: any
-  ): Promise<IApiResponse<any>> {
+    commands: any
+  ): Promise<IApiResponse<{ response: string }>> {
     const params: IApiRequest = {
       method: "POST",
       endpoint: `command`,
-      body: {
-        module: module,
-        enabled: enabled,
-        value: value,
-      },
+      body: commands,
     };
 
-    const response = await CommandModuleService.api.Request<any>(params);
+    const response = await CommandModuleService.api.Request<{
+      response: string;
+    }>(params);
+
     return response;
   }
 }
