@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { Axe, Mouse } from 'lucide-vue-next';
 import ToogleSwitch from './ToogleSwitch.vue';
+import { ref } from 'vue';
+
+type IconName = keyof typeof iconMap;
 const iconMap = {
     Mouse,
     Axe
 };
 
-type IconName = keyof typeof iconMap;
+const emits = defineEmits<{
+    (e: 'moduleActive', value: boolean): void;
+}>();
 
 const props = defineProps<{
     moduleText: string,
@@ -19,6 +24,12 @@ const getIcon = (name: string) => {
     }
     return null;
 };
+
+const checkedModule = ref<boolean>(false);
+
+const onModuleActive = () => {
+    emits("moduleActive", checkedModule.value);
+}
 </script>
 
 <template>
@@ -31,7 +42,7 @@ const getIcon = (name: string) => {
                 </span>
                 <span v-text="props.moduleText"></span>
             </div>
-            <ToogleSwitch />
+            <ToogleSwitch v-model="checkedModule" v-on:change="onModuleActive" />
         </div>
 
         <div class="flex flex-col flex-1 p-4">

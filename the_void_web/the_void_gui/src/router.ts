@@ -4,12 +4,10 @@ import {
   type RouteRecordRaw,
 } from "vue-router";
 
-import HomeView from "./views/HomeView.vue";
 import PanelView from "./views/PanelView.vue";
 
 const routes: Array<RouteRecordRaw> = [
-  { path: "/:pathMatch(.*)*", redirect: { name: "home" } },
-  { path: "/", name: "home", component: HomeView, meta: { layout: "Main" } },
+  { path: "/:pathMatch(.*)*", redirect: { name: "panel" } },
   {
     path: "/panel",
     name: "panel",

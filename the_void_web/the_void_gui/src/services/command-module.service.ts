@@ -11,15 +11,21 @@ export class CommandModuleService {
     return CommandModuleService.apiInstance;
   }
 
-  public async Command(module: string, value: any): Promise<IApiResponse<any>> {
+  public async Command(
+    module: string,
+    enabled: boolean,
+    value: any
+  ): Promise<IApiResponse<any>> {
     const params: IApiRequest = {
       method: "POST",
       endpoint: `command`,
       body: {
         module: module,
+        enabled: enabled,
         value: value,
       },
     };
+
     const response = await CommandModuleService.api.Request<any>(params);
     return response;
   }
