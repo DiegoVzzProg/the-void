@@ -3,8 +3,11 @@
 </script>
 
 <template>
-    <header class="w-full h-16 flex justify-between items-center border-b border-b-[#232732] mb-3">
-        <span class="text-[clamp(18px,3vw,24px)]">dashboard</span>
+    <header class="w-full min-h-16 flex items-center mb-3">
+        <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            <span class="w-2 h-6 bg-[#6366f1] rounded-full"></span>
+            dashboard
+        </h1>
     </header>
 </template>
 

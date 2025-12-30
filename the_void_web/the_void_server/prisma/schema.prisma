@@ -1,0 +1,19 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model void_users {
+  id       String  @id @default(uuid())
+  email    String  @unique @db.VarChar(250)
+  username String  @db.VarChar(50)
+  password String  @db.VarChar(255)
+  hwid     String? @unique @db.VarChar(250)
+  banned   Boolean @default(false) // Le agregué un valor por defecto para evitar errores
+}

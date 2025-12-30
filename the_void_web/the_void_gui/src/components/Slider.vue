@@ -1,49 +1,37 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-// Soporte para v-model:
-// - modelValue es el valor que viene/controla el padre
-// - emits para update:modelValue y change
-const props = defineProps<{
-    modelValue?: number,
-    min?: number,
-    max?: number,
-}>();
+const props = defineProps<{ modelValue?: number, min?: number, max?: number }>();
+const emits = defineEmits<{ (e: 'update:modelValue', value: number): void, (e: 'change', value: number): void }>();
 
-const emits = defineEmits<{
-    (e: 'update:modelValue', value: number): void,
-    (e: 'change', value: number): void
-}>();
-
-// Valor interno, reflejando la prop modelValue o fallback a un valor por defecto (10)
 const innerValue = computed({
-    get: () => props.modelValue !== undefined ? props.modelValue : 10,
+    get: () => props.modelValue ?? 10,
     set: (val: number) => emits('update:modelValue', val)
 });
 
 const minValue = computed(() => props.min ?? 1);
 const maxValue = computed(() => props.max ?? 100);
 
-// Calcular el porcentaje para el efecto visual
 const percentage = computed(() => {
     const range = maxValue.value - minValue.value;
-    const value = innerValue.value - minValue.value;
-    return range > 0 ? (value / range) * 100 : 0;
+    return range > 0 ? ((innerValue.value - minValue.value) / range) * 100 : 0;
 });
-
-// Al mover el slider, también emitir 'change' hacia el padre
-function onChange(event: Event) {
-    const value = Number((event.target as HTMLInputElement).value);
-    emits('change', value);
-}
 </script>
 
 <template>
-    <div class="flex w-full">
-        <label class="slider w-full">
-            <input type="range" class="level" :min="minValue" :max="maxValue" v-model.number="innerValue"
-                :style="{ '--percentage': percentage + '%' }" @change="onChange" />
-        </label>
+    <div class="w-full py-2">
+        <div class="relative w-full h-1.5 bg-[#1f2029] rounded-full">
+            <div class="absolute h-full bg-[#6366f1] rounded-full pointer-events-none shadow-[0_0_10px_rgba(99,102,241,0.6)]"
+                :style="{ width: percentage + '%' }"></div>
+
+            <input type="range" :min="minValue" :max="maxValue" v-model.number="innerValue"
+                @change="(e) => emits('change', Number((e.target as HTMLInputElement).value))"
+                class="absolute w-full h-full opacity-0 cursor-pointer z-10" />
+
+            <div class="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full pointer-events-none shadow-md transition-transform duration-75 active:scale-125"
+                :style="{ left: `calc(${percentage}% - 7px)` }">
+            </div>
+        </div>
     </div>
 </template>
 

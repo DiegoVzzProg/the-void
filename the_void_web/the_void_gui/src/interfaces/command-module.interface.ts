@@ -1,6 +1,21 @@
 export interface ICommand {
   module: string;
-  enabled: boolean;
-  value: string | number;
-  conditions?: any[] | null;
+  action: "enable" | "disable";
+  settings: {
+    cps?: number;
+
+    range?: number;
+    hitchance?: number;
+    fov?: number;
+    smoothness?: number;
+
+    horizontal?: number;
+    vertical?: number;
+    chance?: number;
+  };
+  conditions?: string[];
+}
+
+export interface ICommandResponse {
+  status: string;
 }

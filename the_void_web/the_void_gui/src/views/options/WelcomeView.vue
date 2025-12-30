@@ -7,15 +7,54 @@ import {
 } from 'lucide-vue-next';
 import CardInformation from '../../components/CardInformation.vue';
 import HeroFeature from '../../components/HeroFeature.vue';
+import CardProduct from '../../components/CardProduct.vue';
 
+const products = [
+    {
+        title: "The Void (AutoClicker)",
+        subtitle: "Essential clicking automation",
+        price: "$9.99",
+        period: "/month",
+        features: [
+            "Undetected Clicker Logic",
+            "Randomization Control",
+            "Basic Support",
+            "Windows 10/11 Compatible"
+        ],
+        isPopular: false
+    },
+    {
+        title: "The Void",
+        subtitle: "Complete combat suite",
+        price: "$24.99",
+        period: "/month",
+        features: [
+            "Access to All Modules",
+            "AimAssist + Reach + Velocity",
+            "Trace Removal Protocol",
+            "Priority 24/7 Support",
+            "Early Access to Updates"
+        ],
+        isPopular: true
+    }
+];
+
+const handleBuy = (productTitle: string) => {
+    console.log(`Comprando: ${productTitle}`);
+    // Aquí tu lógica de redirección a pasarela de pago
+};
 
 </script>
 
 <template>
-    <header class="w-full h-16 flex flex-col justify-center border-b border-b-[#232732] mb-3">
-        <span class="text-[clamp(18px,3vw,24px)]">welcome user</span>
+    <header class="w-full min-h-16 flex items-center mb-3">
+        <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            <span class="w-2 h-6 bg-[#6366f1] rounded-full"></span>
+            information
+        </h1>
     </header>
-    <div class="flex flex-col flex-1 lg:px-2 gap-2 overflow-auto">
+
+    <div class="grid grid-cols-1 gap-4 lg:gap-6 overflow-auto h-[calc(100dvh-186px)]">
         <HeroFeature />
 
         <span class="w-full text-center py-4 text-[24px] font-semibold">Why choose us?</span>
@@ -99,19 +138,9 @@ import HeroFeature from '../../components/HeroFeature.vue';
         </div>
 
         <span class="w-full text-center py-4 text-[24px] font-semibold">Product</span>
-        <div class="grid grid-cols-1">
-            <CardInformation>
-                <div class="flex items-start gap-4">
-                    <div>
-                        <h3 class="text-lg font-bold text-white group-hover:text-indigo-200 transition-colors">
-                            The Void (Basic)
-                        </h3>
-                        <p class="mt-2 text-sm leading-relaxed text-gray-400">
-                            Timeless architecture. Universal modules built to outlast any anticheat update.
-                        </p>
-                    </div>
-                </div>
-            </CardInformation>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-2" id="prod_str">
+            <CardProduct v-for="product in products" :key="product.title" v-bind="product"
+                @buy="handleBuy(product.title)" />
         </div>
     </div>
 </template>

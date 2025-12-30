@@ -1,30 +1,34 @@
 require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const http = require("http");
-const { setupWebSocket } = require("./src/websocket/wsManager");
-const { processCommand } = require("./src/controllers/commandController");
+const fastify = require("fastify")({ logger: true }); // Logger activado
+const { handleConnection } = require("./src/websocket/wsManager");
 
-const app = express();
-const server = http.createServer(app); // Creamos servidor HTTP crudo para atarle WS
+const api = require("./src/routes/api");
 
-// Middlewares
-app.use(cors()); // Permite conexiones desde Vue
-app.use(express.json()); // Entiende JSON en el body
+const start = async () => {
+  try {
+    await fastify.register(require("@fastify/cors"), { origin: true });
+    await fastify.register(require("@fastify/websocket"));
 
-// Rutas HTTP (API)
-app.post("/api/command", processCommand);
-app.get("/", (req, res) => res.send("The Void Backend is Running..."));
+    await fastify.register(api, { prefix: "/api" });
 
-// Inicializar WebSockets
-setupWebSocket(server);
+    fastify.register(async function (fastify) {
+      fastify.get("/ws", { websocket: true }, handleConnection);
+    });
 
-// Arrancar
-const PORT = process.env.PORT || 5010;
-server.listen(PORT, () => {
-  console.log(`==========================================`);
-  console.log(`   THE VOID - BACKEND OPERATIVO`);
-  console.log(`   HTTP: http://localhost:${PORT}`);
-  console.log(`   WSS:  ws://localhost:${PORT}${process.env.WS_PATH || "/ws"}`);
-  console.log(`==========================================`);
-});
+    const PORT = process.env.PORT || 5010;
+    await fastify.listen({ port: PORT, host: "0.0.0.0" });
+
+    console.log(`
+      ====================================
+      THE VOID - BACKEND
+      API: http://127.0.0.1:${PORT}/api
+      WSS: ws://127.0.0.1:${PORT}/ws
+      ====================================
+    `);
+  } catch (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
+};
+
+start();

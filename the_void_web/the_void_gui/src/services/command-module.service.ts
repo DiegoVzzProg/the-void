@@ -1,4 +1,8 @@
 import type { IApiRequest, IApiResponse } from "../interfaces/api.interfaces";
+import type {
+  ICommand,
+  ICommandResponse,
+} from "../interfaces/command-module.interface";
 import { Api } from "./api.service";
 
 export class CommandModuleService {
@@ -12,17 +16,17 @@ export class CommandModuleService {
   }
 
   public async Command(
-    commands: any
-  ): Promise<IApiResponse<{ response: string }>> {
+    commands: ICommand
+  ): Promise<IApiResponse<ICommandResponse>> {
     const params: IApiRequest = {
       method: "POST",
-      endpoint: `command`,
+      endpoint: "command",
       body: commands,
     };
 
-    const response = await CommandModuleService.api.Request<{
-      response: string;
-    }>(params);
+    const response = await CommandModuleService.api.Request<ICommandResponse>(
+      params
+    );
 
     return response;
   }

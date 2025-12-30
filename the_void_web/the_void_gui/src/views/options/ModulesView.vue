@@ -4,8 +4,9 @@ import Slider from '../../components/Slider.vue';
 import { ref } from 'vue';
 import CardModule from '../../components/CardModule.vue';
 import SelectOptions, { type SelectOption } from '../../components/SelectOptions.vue';
+import type { ICommand } from '../../interfaces/command-module.interface';
 
-const CommandModule = async (commandParams: any) => {
+const CommandModule = async (commandParams: ICommand) => {
     const commandService = new CommandModuleService();
 
     const res = await commandService.Command(commandParams);
@@ -13,7 +14,7 @@ const CommandModule = async (commandParams: any) => {
 
     if (!data) return;
 
-    if (data.response === "ok") {
+    if (data.status === "ok") {
 
     } else {
 
@@ -24,10 +25,11 @@ const CommandModule = async (commandParams: any) => {
 
 const autoClicker = ref<boolean>(false);
 const autoClickerValue = ref<number>(12);
+
 const autoClickerConditions = ref<string[]>([]);
 const autoClickerMaxValue = ref<number>(24);
 const autoClickerOptionsDefault = ref<string[]>([]);
-const autoClickerValuesBlackList = ref<string[]>(['blatan']);
+const autoClickerValuesBlackList = ref<string[]>([]);
 
 const autoClickerOptions = ref<SelectOption[]>([
     { label: "blatan", value: "blatan" },
@@ -65,12 +67,15 @@ const onChangeAutoClickerConditions = async (values: string[], valuesOptionsWhit
 }
 
 const autoClickerModule = async () => {
-    const commandParams: any = {
+    const commandParams: ICommand = {
         module: "auto-clicker",
-        enabled: autoClicker.value,
-        value: autoClickerValue.value,
+        action: autoClicker.value ? "enable" : "disable",
+        settings: {
+            cps: autoClickerValue.value
+        },
         conditions: autoClickerConditions.value
     }
+
     await CommandModule(commandParams);
 }
 
@@ -86,7 +91,7 @@ const reachRangeText = ref<string>("3.0");
 const reachHitChance = ref<number>(50);
 
 const reachConditionsSelected = ref<string[]>([]);
-const reachOptionsDefault = ref<string[]>(['randomization']);
+const reachOptionsDefault = ref<string[]>([]);
 const reachValuesBlackList = ref<string[]>([]);
 
 const reachOptions = ref<SelectOption[]>([
@@ -114,11 +119,13 @@ const onActiveReach = async (value: boolean) => {
 
 const reachModule = async () => {
 
-    const commandParams: any = {
+    const commandParams: ICommand = {
         module: "reach",
-        enabled: reach.value,
-        value: reachRange.value,
-        hitchance: reachHitChance.value,
+        action: reach.value ? "enable" : "disable",
+        settings: {
+            range: reachRange.value,
+            hitchance: reachHitChance.value
+        },
         conditions: reachConditionsSelected.value
     }
 
@@ -161,7 +168,7 @@ const aimAssistsRangeText = ref<string>("4.0");
 const aimAssistsSmooth = ref<number>(15);
 
 const aimAssistsConditionsSelected = ref<string[]>([]);
-const aimAssistsOptionsDefault = ref<string[]>(['click-only']);
+const aimAssistsOptionsDefault = ref<string[]>([]);
 const aimAssistsValuesBlackList = ref<string[]>([]);
 
 const aimAssistsOptions = ref<SelectOption[]>([
@@ -211,12 +218,14 @@ const onChangeAimAssistsSmoothness = async () => {
 }
 
 const activeAimAssistsModule = async () => {
-    const commandParams: any = {
+    const commandParams: ICommand = {
         module: "aim-assists",
-        enabled: aimAssists.value,
-        fov: aimAssistsFov.value,
-        smooth: aimAssistsSmooth.value,
-        range: aimAssistsRange.value,
+        action: aimAssists.value ? "enable" : "disable",
+        settings: {
+            fov: aimAssistsFov.value,
+            smoothness: aimAssistsSmooth.value,
+            range: aimAssistsRange.value,
+        },
         conditions: aimAssistsConditionsSelected.value
     }
     await CommandModule(commandParams);
@@ -271,12 +280,14 @@ const onChangeVelocityChance = async () => {
 }
 
 const velocityModule = async () => {
-    const commandParams: any = {
+    const commandParams: ICommand = {
         module: "velocity",
-        enabled: velocity.value,
-        horizontal: velocityHorizontal.value,
-        vertical: velocityVertical.value,
-        chance: velocityChance.value,
+        action: velocity.value ? "enable" : "disable",
+        settings: {
+            horizontal: velocityHorizontal.value,
+            vertical: velocityVertical.value,
+            chance: velocityChance.value
+        },
         conditions: velocityConditionsSelected.value
     }
     await CommandModule(commandParams);
@@ -287,91 +298,104 @@ const velocityModule = async () => {
 </script>
 
 <template>
-    <header class="w-full h-16 flex justify-between items-center border-b border-b-[#232732] mb-3">
-        <span class="text-[clamp(18px,3vw,24px)]">modules</span>
+    <header class="w-full min-h-16 flex items-center mb-3">
+        <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            <span class="w-2 h-6 bg-[#6366f1] rounded-full"></span>
+            modules
+        </h1>
     </header>
 
-    <div class="flex md:grid md:grid-cols-2 overflow-auto lg:px-2 gap-2 flex-1">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 pb-10 overflow-auto h-[calc(100dvh-186px)]">
+
         <CardModule module-text="auto clicker" icon="Mouse" v-on:module-active="onActiveAutoClicker">
-            <div class="flex flex-col gap-1 mb-2">
-                <div class="flex items-center justify-between">
-                    <span>cps</span>
-                    <span v-text="autoClickerValue" class="select-none"></span>
+            <div class="space-y-6">
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
+                        <span>CPS</span>
+                        <span class="text-white">{{ autoClickerValue }}</span>
+                    </div>
+                    <Slider :min="5" :max="autoClickerMaxValue" v-model="autoClickerValue"
+                        v-on:change="onChangeAutoClickerValue" />
                 </div>
-                <Slider :min="5" :max="autoClickerMaxValue" v-model="autoClickerValue"
-                    v-on:change="onChangeAutoClickerValue" />
-            </div>
-            <div class="flex flex-col gap-2">
                 <SelectOptions :model-value="autoClickerOptionsDefault" :options="autoClickerOptions"
                     :value-black-list="autoClickerValuesBlackList" v-on:change="onChangeAutoClickerConditions" />
             </div>
         </CardModule>
+
         <CardModule module-text="reach" icon="Axe" v-on:module-active="onActiveReach">
-            <div class="flex flex-col gap-1 mb-2">
-                <div class="flex items-center justify-between">
-                    <span>range</span>
-                    <span v-text="reachRangeText" class="select-none"></span>
+            <div class="space-y-5">
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
+                        <span>Range</span>
+                        <span class="text-white">{{ reachRangeText }}</span>
+                    </div>
+                    <Slider :min="30" :max="80" v-model="reachRangeSlider" v-on:update:model-value="onUpdateReachRange"
+                        v-on:change="onChangeReachRange" />
                 </div>
-                <Slider :min="30" :max="80" v-model="reachRangeSlider" v-on:update:model-value="onUpdateReachRange"
-                    v-on:change="onChangeReachRange" />
-                <div class="flex items-center justify-between">
-                    <span>hitchance</span>
-                    <span v-text="`${reachHitChance}%`" class="select-none"></span>
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
+                        <span>Hit Chance</span>
+                        <span class="text-white">{{ reachHitChance }}%</span>
+                    </div>
+                    <Slider :min="0" :max="100" v-model="reachHitChance" v-on:change="onChangeHitChance" />
                 </div>
-                <Slider :min="1" :max="100" v-model="reachHitChance" v-on:change="onChangeHitChance" />
-            </div>
-            <div class="flex flex-col gap-2">
                 <SelectOptions v-model="reachOptionsDefault" :options="reachOptions"
                     :value-black-list="reachValuesBlackList" v-on:change="onChangeConditionsReachRange" />
             </div>
         </CardModule>
+
         <CardModule module-text="aim assist" icon="Handshake" v-on:module-active="onActiveAimAssists">
-            <div class="flex flex-col gap-1 mb-2">
-                <div class="flex items-center justify-between">
-                    <span>fov</span>
-                    <span v-text="aimAssistsFov" class="select-none"></span>
+            <div class="space-y-5">
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
+                        <span>FOV</span>
+                        <span class="text-white">{{ aimAssistsFov }}</span>
+                    </div>
+                    <Slider :min="20" :max="360" v-model="aimAssistsFov" v-on:change="onChangeAimAssistsFov" />
                 </div>
-                <Slider :min="20" :max="240" v-model="aimAssistsFov" v-on:change="onChangeAimAssistsFov" />
-
-                <div class="flex items-center justify-between">
-                    <span>range</span>
-                    <span v-text="aimAssistsRangeText" class="select-none"></span>
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
+                        <span>Range</span>
+                        <span class="text-white">{{ aimAssistsRangeText }}</span>
+                    </div>
+                    <Slider :min="30" :max="80" v-model="aimAssistsRangeSlider"
+                        v-on:update:model-value="onUpdateAimAssistsRange" v-on:change="onChangeAimAssistsRange" />
                 </div>
-                <Slider :min="30" :max="80" v-model="aimAssistsRangeSlider"
-                    v-on:update:model-value="onUpdateAimAssistsRange" v-on:change="onChangeAimAssistsRange" />
-
-                <div class="flex items-center justify-between">
-                    <span>smoothness</span>
-                    <span v-text="`${aimAssistsSmooth}%`" class="select-none"></span>
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
+                        <span>Smoothness</span>
+                        <span class="text-white">{{ aimAssistsSmooth }}%</span>
+                    </div>
+                    <Slider :min="0" :max="100" v-model="aimAssistsSmooth" v-on:change="onChangeAimAssistsSmoothness" />
                 </div>
-                <Slider :min="1" :max="100" v-model="aimAssistsSmooth" v-on:change="onChangeAimAssistsSmoothness" />
-            </div>
-            <div class="flex flex-col gap-2">
                 <SelectOptions v-model="aimAssistsOptionsDefault" :options="aimAssistsOptions"
                     :value-black-list="aimAssistsValuesBlackList" v-on:change="onChangeAimAssitsConditions" />
             </div>
         </CardModule>
+
         <CardModule module-text="velocity" icon="UnfoldHorizontal" v-on:module-active="onActiveVelocity">
-            <div class="flex flex-col gap-1 mb-2">
-                <div class="flex items-center justify-between">
-                    <span>horizontal</span>
-                    <span v-text="velocityHorizontal" class="select-none"></span>
+            <div class="space-y-5">
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
+                        <span>Horizontal</span>
+                        <span class="text-white">{{ velocityHorizontal }}%</span>
+                    </div>
+                    <Slider :min="0" :max="100" v-model="velocityHorizontal" v-on:change="onChangeVelocityHorizontal" />
                 </div>
-                <Slider :min="0" :max="100" v-model="velocityHorizontal" v-on:change="onChangeVelocityHorizontal" />
-
-                <div class="flex items-center justify-between">
-                    <span>vertical</span>
-                    <span v-text="velocityVertical" class="select-none"></span>
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
+                        <span>Vertical</span>
+                        <span class="text-white">{{ velocityVertical }}%</span>
+                    </div>
+                    <Slider :min="0" :max="100" v-model="velocityVertical" v-on:change="onChangeVelocityVertical" />
                 </div>
-                <Slider :min="0" :max="100" v-model="velocityVertical" v-on:change="onChangeVelocityVertical" />
-
-                <div class="flex items-center justify-between">
-                    <span>chance</span>
-                    <span v-text="`${velocityChance}%`" class="select-none"></span>
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
+                        <span>Chance</span>
+                        <span class="text-white">{{ velocityChance }}%</span>
+                    </div>
+                    <Slider :min="0" :max="100" v-model="velocityChance" v-on:change="onChangeVelocityChance" />
                 </div>
-                <Slider :min="0" :max="100" v-model="velocityChance" v-on:change="onChangeVelocityChance" />
-            </div>
-            <div class="flex flex-col gap-2">
                 <SelectOptions v-model="velocityOptionsDefault" :options="velocityOptions"
                     :value-black-list="velocityValuesBlackList" v-on:change="onChangeVelocityConditions" />
             </div>

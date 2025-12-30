@@ -49,67 +49,41 @@ function onChange(event: Event) {
 </script>
 
 <template>
-    <label class="switch">
-        <input type="checkbox" :checked="internalValue" @change="onChange">
-        <span class="slider"></span>
+    <label class="switch relative inline-block w-12 h-6">
+        <input type="checkbox" class="opacity-0 w-0 h-0" :checked="internalValue" @change="onChange">
+        <span
+            class="slider round absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-[#1a1b26] border border-white/10 transition-all duration-300 rounded-full"></span>
     </label>
 </template>
 
 <style scoped>
-.switch {
-    --secondary-container: #3a4b39;
-    --primary: #84da89;
-    font-size: 17px;
-    position: relative;
-    display: inline-block;
-    width: 3.7em;
-    height: 1.8em;
-}
-
-.switch input {
-    display: none;
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #313033;
-    transition: .2s;
-    border-radius: 30px;
-}
-
+/* El círculo (thumb) */
 .slider:before {
     position: absolute;
     content: "";
-    height: 1.4em;
-    width: 1.4em;
-    border-radius: 20px;
-    left: 0.2em;
-    bottom: 0.2em;
-    background-color: #aeaaae;
-    transition: .4s;
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 3px;
+    background-color: #52525b;
+    /* Zinc-600 inactivo */
+    transition: .3s;
+    border-radius: 50%;
 }
 
-input:checked+.slider::before {
-    background-color: var(--primary);
-}
-
+/* Estado Activo: Fondo Morado Oscuro + Borde Brillante */
 input:checked+.slider {
-    background-color: var(--secondary-container);
+    background-color: #312e81;
+    /* Indigo-900 */
+    border-color: #6366f1;
+    /* Indigo-500 */
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
 }
 
-input:focus+.slider {
-    box-shadow: 0 0 1px var(--secondary-container);
-}
-
+/* Estado Activo: Círculo Blanco Brillante */
 input:checked+.slider:before {
-    transform: translateX(1.9em);
+    background-color: #ffffff;
+    transform: translateX(22px);
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
 }
 </style>

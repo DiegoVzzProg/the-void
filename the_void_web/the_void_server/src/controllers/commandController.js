@@ -1,17 +1,15 @@
-const { sendCommand } = require("../websocket/wsManager");
+const { sendCommandToClient } = require("../websocket/wsManager");
 
-const processCommand = (req, res) => {
+const processCommand = async (req, reply) => {
   const command = req.body;
 
-  console.log(`[API] Comando recibido: ${JSON.stringify(command)}`);
-
-  // Intentar enviar al C++
-  const sent = sendCommand(command);
+  const sent = sendCommandToClient(command);
 
   if (sent) {
-    res.status(200).json({ status: "Enviado al C++ con éxito" });
+    return { status: "Enviado al C++ con éxito" };
   } else {
-    res.status(503).json({ error: "El Cliente C++ no está conectado" });
+    reply.code(503);
+    throw new Error("El Cliente C++ no está conectado");
   }
 };
 

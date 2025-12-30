@@ -1,26 +1,29 @@
 <script setup lang="ts">
-import { Form, LayoutDashboard, Package, Settings2, TvMinimal } from 'lucide-vue-next';
+import { Form, KeyRound, LayoutDashboard, Package, Settings2, TvMinimal } from 'lucide-vue-next';
 import { ref } from 'vue';
 import DashboardView from './options/DashboardView.vue';
 import ModulesView from './options/ModulesView.vue';
 import Logo from '../components/Logo.vue';
 import WelcomeView from './options/WelcomeView.vue';
+import AuthView from './AuthView.vue';
 
 const iconMap = {
     LayoutDashboard,
     Package,
     Settings2,
     TvMinimal,
-    Form
+    Form,
+    KeyRound
 };
 
 type IconName = keyof typeof iconMap;
 const options = [
     { id: 1, icono: "TvMinimal", text: "information", visible: true },
-    { id: 2, icono: "LayoutDashboard", text: "dashboard", visible: true },
-    { id: 3, icono: "Package", text: "modules", visible: true },
-    { id: 4, icono: "Settings2", text: "settings", visible: true },
-    { id: 5, icono: "Form", text: "forum", visible: true },
+    { id: 2, icono: "LayoutDashboard", text: "dashboard", visible: false },
+    { id: 3, icono: "Package", text: "modules", visible: false },
+    { id: 4, icono: "Settings2", text: "settings", visible: false },
+    { id: 5, icono: "Form", text: "forum", visible: false },
+    { id: 6, icono: "KeyRound", text: "auth", visible: true },
 ]
 
 const getIcon = (name: string) => {
@@ -30,7 +33,7 @@ const getIcon = (name: string) => {
     return null;
 };
 
-const selectedOption = ref<number>(3);
+const selectedOption = ref<number>(1);
 
 const onSelectOption = (id: number): void => {
     selectedOption.value = id;
@@ -39,9 +42,9 @@ const onSelectOption = (id: number): void => {
 </script>
 
 <template>
-    <div class="flex-1 flex lg:items-center lg:justify-center md:p-4">
+    <div class="flex-1 flex lg:items-center lg:justify-center lg:p-4">
         <div
-            class="w-full max-w-[1200px] bg-[#0a0a0c] h-full lg:max-h-[580px] border border-[#232732] md:rounded-4xl flex max-lg:flex-col-reverse z-10 overflow-hidden">
+            class="w-full max-w-[1200px] bg-[#0a0a0c] h-full lg:max-h-[680px] border border-[#232732] lg:rounded-4xl flex max-lg:flex-col-reverse z-10 overflow-hidden">
             <aside
                 class="flex flex-col bg-[#0e1012] w-full lg:max-w-3xs h-full max-lg:max-h-[80px] lg:border-r lg:border-r-[#232732] gap-4 p-4">
                 <div class="flex items-center justify-start px-4 lg:py-6 max-lg:hidden">
@@ -60,10 +63,11 @@ const onSelectOption = (id: number): void => {
                     </template>
                 </div>
             </aside>
-            <section class="flex flex-col flex-1 p-2 md:p-4">
+            <section class="flex flex-col flex-1 p-2 lg:p-4">
                 <WelcomeView v-if="selectedOption == 1" />
-                <DashboardView v-if="selectedOption == 2" />
+                <DashboardView v-else-if="selectedOption == 2" />
                 <ModulesView v-else-if="selectedOption == 3" />
+                <AuthView v-else-if="selectedOption == 6" />
             </section>
         </div>
     </div>
