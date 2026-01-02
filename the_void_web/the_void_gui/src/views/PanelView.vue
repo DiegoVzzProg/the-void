@@ -20,7 +20,7 @@ type IconName = keyof typeof iconMap;
 const options = [
     { id: 1, icono: "TvMinimal", text: "information", visible: true },
     { id: 2, icono: "LayoutDashboard", text: "dashboard", visible: false },
-    { id: 3, icono: "Package", text: "modules", visible: false },
+    { id: 3, icono: "Package", text: "modules", visible: true },
     { id: 4, icono: "Settings2", text: "settings", visible: false },
     { id: 5, icono: "Form", text: "forum", visible: false },
     { id: 6, icono: "KeyRound", text: "auth", visible: true },

@@ -50,7 +50,7 @@ function handleConnection(connection, req) {
     // Enviar bienvenida
     // Usamos try-catch aquí también por si el socket no está listo
     try {
-      socket.send(JSON.stringify({ type: "WELCOME", msg: "Backend Listo" }));
+      //socket.send(JSON.stringify({ type: "WELCOME", msg: "Backend Listo" }));
     } catch (sendErr) {
       console.error("[WS WARN] No se pudo enviar bienvenida:", sendErr.message);
     }

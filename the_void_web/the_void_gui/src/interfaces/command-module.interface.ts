@@ -6,8 +6,10 @@ export interface ICommand {
 
     range?: number;
     hitchance?: number;
+
     fov?: number;
     smoothness?: number;
+    strafe_assist_value?: number;
 
     horizontal?: number;
     vertical?: number;
