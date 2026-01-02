@@ -8,10 +8,12 @@ struct Reach
 {
 	inline static bool Enabled = false;
 
-	inline static float ReachDistance = 3.0f;
+	inline static float MinReach = 3.05f;
+	inline static float MaxReach = 3.20f;
+	inline static float hitChance = 100.0f;
+	inline static bool Randomization = false;
 
 	static void Update();
-
 	static void RenderMenu();
 };
 

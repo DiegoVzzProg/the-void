@@ -15,10 +15,13 @@ struct CMinecraft : IClass
 
 	jclass GetClass();
 	jobject GetInstance();
+	jclass GuiInventoryClass = nullptr;
 
 	CEntity GetRenderViewEntity();
 	bool IsInGuiState();
 	void ClickMouse();
+	bool IsInventory();
+
 	CMovingObjectPosition GetMouseOver();
 
 	CEntityPlayerSP* thePlayer;

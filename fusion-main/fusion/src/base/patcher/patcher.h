@@ -14,11 +14,12 @@ namespace Patcher
 		inline static jmethodID g_MapRemove = nullptr;
 		inline static jobject g_ConcurrentMap = nullptr;
 		inline static jobject g_HashMap = nullptr;
+		inline static jclass ClassPatcher_class = nullptr;
 
 		void loadJar(jobject classLoader, const unsigned char* jarBytes, size_t size);
-		void gc();
-		jobject newClassLoader();
-		void retransformClasses();
+		//void gc();
+		//jobject newClassLoader();
+		//void retransformClasses();
 		void JNICALL ClassFileLoadHook
 		(
 			jvmtiEnv* jvmti_env,
@@ -38,3 +39,30 @@ namespace Patcher
 	void put(const std::string& key, const std::string& value);
 	void remove(const std::string& key);
 }
+//
+//#include <string>
+//#include <mutex> // Para seguridad extra en C++ side si fuera necesario
+
+//namespace Patcher
+//{
+//    // Estado interno encapsulado
+//    namespace State {
+//        inline jobject original_EMPTY_MAP = nullptr;
+//
+//        // Referencias Globales (Persistentes)
+//        inline jclass g_MapClass = nullptr;
+//        inline jclass g_ConcurrentMapClass = nullptr; // Nuevo
+//        inline jobject g_ActiveMap = nullptr;         // Nuestro mapa fake
+//
+//        // Method IDs (Caché para velocidad)
+//        inline jmethodID g_MapPut = nullptr;
+//        inline jmethodID g_MapRemove = nullptr;
+//    }
+//
+//    void Init();
+//    void Kill();
+//
+//    void put(std::string key, std::string value);
+//    void remove(std::string key);
+//
+//}

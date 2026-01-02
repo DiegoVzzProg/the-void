@@ -48,7 +48,7 @@ void Web::Init() {
             std::cout << "[DLL] Desconectado. Codigo: " << msg->closeInfo.code << std::endl;
         }
         else if (msg->type == ix::WebSocketMessageType::Message) {
-            std::cout << "[DLL] RAW: " << msg->str << std::endl;
+            std::cout << "[DLL] RECIBIO MENSAJE: " << msg->str << std::endl;
             try {
                 auto data = json::parse(msg->str);
 
@@ -74,4 +74,31 @@ void Web::Cleanup() {
     std::cout << "[DLL] Deteniendo servicios de red..." << std::endl;
     clientSocket.stop();
     ix::uninitNetSystem();
+}
+
+bool Web::ActivatedCondition(std::string key) {
+    auto& conditions = Web::module_manager_value["conditions"];
+
+    bool exists = false;
+
+    if (conditions.empty()) {
+        return exists;
+    }
+
+    for (auto& condition : conditions) {
+        std::string condStr = condition.get<std::string>();
+
+        if (condStr == key)
+        {
+            exists = true;
+            break;
+        }
+        else
+        {
+            exists = false;
+            break;
+        }
+    }
+
+    return exists;
 }

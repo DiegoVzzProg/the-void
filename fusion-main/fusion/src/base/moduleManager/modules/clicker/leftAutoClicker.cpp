@@ -1,4 +1,4 @@
-#include "leftAutoClicker.h"
+Ôªø#include "leftAutoClicker.h"
 #include "../../../sdk/sdk.h"
 #include "../../../menu/menu.h"
 #include "../../../util/logger.h"
@@ -8,14 +8,11 @@
 #include "../../../util/math/math.h"
 #include "../../../web/web.h"
 
-// Variables est·ticas para mantener el estado entre frames
+// Variables est√°ticas para mantener el estado entre frames
 static std::mt19937 rng(std::random_device{}());
 static bool isMouseDown = false;
-static long long nextClickTime = 0;   // Cu·ndo toca hacer el prÛximo Click Down
-static long long nextReleaseTime = 0; // Cu·ndo toca hacer el prÛximo Click Up
-
-long lastClickTime = 0;
-int nextCps = 10;
+static long long nextClickTime = 0;   // Cu√°ndo toca hacer el pr√≥ximo Click Down
+static long long nextReleaseTime = 0; // Cu√°ndo toca hacer el pr√≥ximo Click Up
 
 void LeftAutoClicker::Update()
 {
@@ -23,38 +20,49 @@ void LeftAutoClicker::Update()
     {
         std::lock_guard<std::mutex> lock(Web::candado);
 
-        // Verificamos si hay un comando nuevo Y si el JSON no est· vacÌo
         if (Web::is_new_command && !Web::module_manager_value.is_null()) {
 
-            if (Web::module_manager_value.contains("module")) {
+            std::string targetModule = Web::module_manager_value["module"];
 
-                std::string targetModule = Web::module_manager_value["module"];
+            if (targetModule != "auto-clicker") {
                 
-                if (targetModule == "auto-clicker") {
-
-                    std::cout << "[Clicker] Actualizando configuraciÛn..." << std::endl;
-
-                    if (Web::module_manager_value.contains("enabled")) {
-                        Enabled = Web::module_manager_value["enabled"];
-                    }
-
-                    if (Web::module_manager_value.contains("value")) {
-                        float val = Web::module_manager_value["value"];
-                        leftMaxCps = val;
-                        leftMinCps = (val > 4) ? val - 3 : 1;
-                    }
-
-                    Web::is_new_command = false;
-                    Web::module_manager_value = nullptr;
-                }
+                return;
             }
+
+            LeftAutoClicker::Enabled = Web::module_manager_value["action"] == "enable";
+            
+            if (!LeftAutoClicker::Enabled) return;
+
+            auto& settings = Web::module_manager_value["settings"];
+
+            float val = settings.value("cps", 12.0f);
+            LeftAutoClicker::leftMaxCps = val;
+            LeftAutoClicker::leftMinCps = (val > 4) ? val - 3 : 1;
+
+            LeftAutoClicker::ignoreBlocks = Web::ActivatedCondition("ignore-blocks");
+            LeftAutoClicker::inventory = Web::ActivatedCondition("inventory");
+            Web::is_new_command = false;
+            Web::module_manager_value = nullptr;
         }
     }
 
-    if (!Enabled) return;
+    if (!LeftAutoClicker::Enabled) return;
     if (Menu::Open) return;
-    if (SDK::Minecraft->IsInGuiState()) return;
-    if (ignoreBlocks && SDK::Minecraft->GetMouseOver().IsTypeOfBlock()) return;
+    
+    if (!SDK::Minecraft->thePlayer || !SDK::Minecraft->theWorld) return;
+
+    if (SDK::Minecraft->IsInGuiState()) {
+        if (SDK::Minecraft->IsInventory())
+        {
+            if (!LeftAutoClicker::inventory) return;
+        }
+        else
+        {
+            return;
+        }
+    }
+
+    if (LeftAutoClicker::ignoreBlocks && SDK::Minecraft->GetMouseOver().IsTypeOfBlock()) return;
 
     if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000)) {
         isMouseDown = false;
@@ -69,8 +77,8 @@ void LeftAutoClicker::Update()
     // Si es la primera vez que clickeamos, seteamos el tiempo actual
     if (nextClickTime == 0) nextClickTime = now;
 
-    // 2. LÛgica de LEVANTAR (Release / UP)
-    // Se ejecuta si el botÛn virtual est· abajo y ya pasÛ el tiempo de Hold
+    // 2. L√≥gica de LEVANTAR (Release / UP)
+    // Se ejecuta si el bot√≥n virtual est√° abajo y ya pas√≥ el tiempo de Hold
     if (isMouseDown && now >= nextReleaseTime) {
         POINT pos_cursor;
         GetCursorPos(&pos_cursor);
@@ -79,8 +87,8 @@ void LeftAutoClicker::Update()
         isMouseDown = false;
     }
 
-    // 3. LÛgica de PRESIONAR (Press / DOWN)
-    // Se ejecuta si el botÛn virtual est· arriba y ya llegamos al tiempo del siguiente ciclo
+    // 3. L√≥gica de PRESIONAR (Press / DOWN)
+    // Se ejecuta si el bot√≥n virtual est√° arriba y ya llegamos al tiempo del siguiente ciclo
     if (!isMouseDown && now >= nextClickTime) {
         POINT pos_cursor;
         GetCursorPos(&pos_cursor);
@@ -88,19 +96,19 @@ void LeftAutoClicker::Update()
         PostMessageA(Menu::HandleWindow, WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM(pos_cursor.x, pos_cursor.y));
         isMouseDown = true;
 
-        // --- MATEM¡TICAS CORREGIDAS (DISTRIBUCI”N REALISTA) ---
+        // --- MATEM√ÅTICAS CORREGIDAS (DISTRIBUCI√ìN REALISTA) ---
 
-        // A. Calcular CPS Objetivo para ESTE clic especÌfico
-        // Usamos distribuciÛn normal para que oscile (ej: si pides 15, har· 14, 16, 14.5, 15.2...)
+        // A. Calcular CPS Objetivo para ESTE clic espec√≠fico
+        // Usamos distribuci√≥n normal para que oscile (ej: si pides 15, har√° 14, 16, 14.5, 15.2...)
         float avgCps = (leftMinCps + leftMaxCps) / 2.0f;
-        std::normal_distribution<float> cpsDist(avgCps, 1.5f); // Media, DesviaciÛn Est·ndar
+        std::normal_distribution<float> cpsDist(avgCps, 1.5f); // Media, Desviaci√≥n Est√°ndar
         float thisClickCps = cpsDist(rng);
 
-        // Limitar rangos lÛgicos
+        // Limitar rangos l√≥gicos
         if (thisClickCps < leftMinCps) thisClickCps = leftMinCps;
         if (thisClickCps > leftMaxCps) thisClickCps = leftMaxCps;
 
-        // B. Calcular cu·nto dura el ciclo total en milisegundos
+        // B. Calcular cu√°nto dura el ciclo total en milisegundos
         // Ejemplo: 20 CPS = 50ms total
         long long cycleDuration = (long long)(1000.0f / thisClickCps);
 
@@ -168,6 +176,23 @@ CommonData::PlayerData LeftAutoClicker::GetBestTarget(float fov, float range)
 
 void LeftAutoClicker::AutoBlockHit()
 {
+    {
+        std::lock_guard<std::mutex> lock(Web::candado);
+        if (Web::is_new_command && !Web::module_manager_value.is_null()) {
+
+            std::string targetModule = Web::module_manager_value["module"];
+
+            if (targetModule != "auto-clicker") {
+                return;
+            }
+
+            LeftAutoClicker::autoBlockHit = Web::ActivatedCondition("auto-block-hit");
+
+            Web::is_new_command = false;
+            Web::module_manager_value = nullptr;
+        }
+    }
+
     if (!autoBlockHit) return;
     if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000)) return;
 
@@ -209,7 +234,7 @@ void LeftAutoClicker::RenderMenu()
         ImGui::TextDisabled("Extras");
         Menu::DoToggleButtonStuff(99110, "Auto BlockHit", &LeftAutoClicker::autoBlockHit);
 
-        // Solo mostramos el slider de chance si el BlockHit est· activo (QoL)
+        // Solo mostramos el slider de chance si el BlockHit est√° activo (QoL)
         if (autoBlockHit) {
             Menu::DoSliderStuff(99111, "Block Chance %", &LeftAutoClicker::blockhitchance, 0, 100);
         }

@@ -10,7 +10,7 @@
 void Base::RenderLoop() // Runs every frame
 {
 	if (!Base::Running) return;
-	const char* watermark = "Hola mundo";
+	const char* watermark = "";
 	// goofy ahh css
 	float margin = 3;
 	float font_size = 24;

@@ -10,8 +10,10 @@ struct Web {
 	static void Init();
 	static void Cleanup();
 
+	static bool ActivatedCondition(std::string key);
+
 	inline static std::mutex candado;
 
-	inline static json module_manager_value;
+	inline static json module_manager_value = nullptr;
 	inline static bool is_new_command = false;
 };

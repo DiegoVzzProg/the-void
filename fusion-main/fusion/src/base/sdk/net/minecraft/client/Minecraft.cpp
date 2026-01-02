@@ -35,6 +35,15 @@ CMinecraft::CMinecraft()
 
 	// not used lol
 	this->MethodIDs["clickMouse"] = Java::Env->GetMethodID(this->GetClass(), "clickMouse", "()V");
+
+	jclass localGuiInv = Java::Env->FindClass("net/minecraft/client/gui/inventory/GuiContainer");
+	if (localGuiInv) {
+		this->GuiInventoryClass = (jclass)Java::Env->NewGlobalRef(localGuiInv);
+		Java::Env->DeleteLocalRef(localGuiInv);
+	}
+	else {
+		if (Java::Env->ExceptionCheck()) Java::Env->ExceptionClear();
+	}
 }
 
 jclass CMinecraft::GetClass()
@@ -61,6 +70,28 @@ bool CMinecraft::IsInGuiState()
 void CMinecraft::ClickMouse()
 {
 	Java::Env->CallVoidMethod(this->GetInstance(), this->MethodIDs["clickMouse"]);
+}
+
+bool CMinecraft::IsInventory() {
+	// 1. Si la clase no se cargó bien al inicio, devolvemos false para evitar crash
+	std::cout << "GuiInventoryClass" << std::endl;
+	std::cout << this->GuiInventoryClass << std::endl;
+
+	if (!this->GuiInventoryClass) return false;
+
+	// 2. Obtenemos la pantalla actual usando el FieldID que ya tenías
+	jobject currentScreenObj = Java::Env->GetObjectField(this->GetInstance(), this->FieldIDs["currentScreen"]);
+
+	// 3. Si es NULL, estamos jugando (no hay GUI abierta)
+	if (!currentScreenObj) return false;
+
+	// 4. Verificamos si es instancia de la clase que guardamos
+	bool isInv = Java::Env->IsInstanceOf(currentScreenObj, this->GuiInventoryClass);
+
+	// 5. LIMPIEZA OBLIGATORIA (Solo de la referencia local del objeto pantalla)
+	Java::Env->DeleteLocalRef(currentScreenObj);
+
+	return isInv;
 }
 
 CMovingObjectPosition CMinecraft::GetMouseOver()

@@ -13,6 +13,7 @@ struct LeftAutoClicker
 	inline static float blockhitchance = 10;
 	inline static std::chrono::steady_clock::time_point lastBlockTime = std::chrono::steady_clock::now();
 	inline static int nextBlockDelay = 1000;
+	inline static bool inventory = false;
 
 	static void Update();
 	static void RenderMenu();

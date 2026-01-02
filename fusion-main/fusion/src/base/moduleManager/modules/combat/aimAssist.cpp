@@ -10,271 +10,274 @@
 
 #include <chrono>
 #include <random>
+#include <cmath>
+#include <mutex>
+#include "../../../web/web.h"
 
-/* 
-How this Aim Assist works :
+static float GetRandomFloat(float min, float max) {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(min, max);
+    return dis(gen);
+}
 
-Essentially its a basic aim assist with smoothing, except that there are 2 aim angles caluclated, one at the feet and one at the head.
-The reason why this is done is because if you notice while using fusions aim assist, you're free to move your pitch up and down when targetting a player,
-however it does not allow you to exceed the players head or feet, meaning you would always be aiming at the player, however freely be able to look at any part of the players body.
-
-Although this can bypass some servers, it does not bypass all of them.
-This is because some anticheats don't really give a damn where you are aiming, they mostly want to see how you rotate when you move, and that is where they catch you.
-
-I (redacted) can create a bypass for it in the future.
-
-For now, if you want to use fusion, just use it with weak settings.
-
-Suggested settings:
-30-40 FOV
-15-30 Smooth
-3.5 - 4 Locking Distance
-*/
 void AimAssist::Update()
 {
-	if (!Enabled) return;
-	if (!CommonData::SanityCheck()) return;
-	if (SDK::Minecraft->IsInGuiState()) return;
-	if (Menu::Open) return;
+    {
+        std::lock_guard<std::mutex> lock(Web::candado);
+        if (Web::is_new_command && !Web::module_manager_value.is_null()) {
 
-	if ((aimKey && (!GetAsyncKeyState(VK_LBUTTON) && 1))) {
-		AimAssist::data = Vector3();
-		return;
-	}
+            std::string targetModule = Web::module_manager_value["module"];
 
-	CEntityPlayerSP* thePlayer = SDK::Minecraft->thePlayer;
+            if (targetModule != "aim-assists") {
+                return;
+            }
 
-	Vector3 pos = thePlayer->GetPos();
-	Vector3 headPos = thePlayer->GetEyePos();
-	Vector2 currentLookAngles = thePlayer->GetAngles();
+            AimAssist::Enabled = Web::module_manager_value["action"] == "enable";
+            
+            if (!AimAssist::Enabled) return;
 
-	std::vector<CommonData::PlayerData> playerList = CommonData::nativePlayerList;
-	if (playerList.empty()) return;
+            auto& settings = Web::module_manager_value["settings"];
+            AimAssist::aimDistance = settings.value("range", 4.0f);
+            AimAssist::fov = settings.value("fov", 35.0f);
 
-	CommonData::PlayerData target;
-	float finalDist = FLT_MAX;
-	float finalDiff = 370;
-	float finalHealth = FLT_MAX;
+            AimAssist::smoothMax = settings.value("smoothness", 15.0f);
+            AimAssist::smoothMin = (AimAssist::smoothMax > 4) ? AimAssist::smoothMax - 3 : 1.0f;
 
-	float realAimDistance = aimDistance;
+            AimAssist::clickOnly = Web::ActivatedCondition("click-only");
+            AimAssist::visibilityCheck = Web::ActivatedCondition("visibility-check");
+            AimAssist::strafeAssist = Web::ActivatedCondition("strafe-assist");
 
-	// The code from here and below is kind of dog water, however it does the job.
-	// The real math for the aim angles if you're interested is located in Math::getAngles()
-	// fusion/src/base/util/math/Math.cpp
-	auto randomFloat = [](float min, float max)
-	{
-		float f = (float)rand() / RAND_MAX;
-		return min + f * (max - min);
-	};
+            if (AimAssist::strafeAssist) {
+                AimAssist::strafeOffset = settings["strafe_assist_value"];
+            }
 
+            Web::is_new_command = false;
+            Web::module_manager_value = nullptr;
+        }
+    }
 
-	for (CommonData::PlayerData player : playerList)
-	{
-		if (!Java::Env->IsSameObject(thePlayer->GetInstance(), player.obj.GetInstance())) {
-			if (!thePlayer->CanEntityBeSeen(player.obj.GetInstance())) continue;
-			Vector3 playerPos = player.pos;
-			float playerHeight = target.height - 0.1;
-			Vector3 playerHeadPos = playerPos + Vector3(0, playerHeight, 0);
+    if (!AimAssist::Enabled) return;
+    if (!CommonData::SanityCheck()) return;
+    if (SDK::Minecraft->IsInGuiState()) return;
+    if (Menu::Open) return;
 
-			Vector2 anglesFoot = Math::getAngles(headPos, playerPos);
-			Vector2 anglesHead = Math::getAngles(headPos, playerHeadPos);
+    if (AimAssist::clickOnly && !(GetAsyncKeyState(VK_LBUTTON) & 0x8000)) {
+        AimAssist::debugTargetPosition = Vector3();
+        return;
+    }
 
-			Vector2 difference = Math::vec_wrapAngleTo180(currentLookAngles.Invert() - anglesHead.Invert());
-			if (difference.x < 0) difference.x = -difference.x;
-			if (difference.y < 0) difference.y = -difference.y;
-			Vector2 differenceFoot = Math::vec_wrapAngleTo180(currentLookAngles.Invert() - anglesFoot.Invert());
-			if (differenceFoot.x < 0) differenceFoot.x = -differenceFoot.x;
-			if (differenceFoot.y < 0) differenceFoot.y = -differenceFoot.y;
+    CEntityPlayerSP* thePlayer = SDK::Minecraft->thePlayer;
+    if (!thePlayer) return;
 
-			float angleYaw = currentLookAngles.x - difference.x;
+    Vector3 pos = thePlayer->GetPos();
+    Vector3 headPos = thePlayer->GetEyePos();
+    Vector2 currentLookAngles = thePlayer->GetAngles();
 
-			Vector3 diff = pos - playerPos;
-			float dist = sqrt(pow(diff.x, 2) + pow(diff.y, 2) + pow(diff.z, 2));
+    auto& playerList = CommonData::nativePlayerList;
+    if (playerList.empty()) return;
 
-			if ((abs(difference.x) <= fov) && dist <= realAimDistance)
-			{
-				float health = player.health;
-				switch(targetPriority) 
-				{
-				case 1:
-					if (finalHealth > health)
-					{
-						target = player;
-						finalHealth = health;
-					}
-					break;
+    CommonData::PlayerData target;
+    bool targetFound = false;
 
-				case 2:
-					if (finalDiff > difference.x)
-					{
-						target = player;
-						finalDiff = difference.x;
-					}
-					break;
-				default:
-					if (finalDist > dist) 
-					{
-						target = player;
-						finalDist = (float)dist;
-					}
-				}
-			}
-		}
-	}
+    float bestDist = FLT_MAX;
+    float bestDiff = FLT_MAX;
+    float bestHealth = FLT_MAX;
+    float maxRange = aimDistance;
 
-	if (!target.obj.GetInstance()) {
-		Vector3 null;
-		data = null;
-		return;
-	}
+    // CORRECCIÓN 3: Quitamos 'const' para evitar el error E1086 con GetInstance()
+    for (auto& player : playerList)
+    {
+        if (Java::Env->IsSameObject(thePlayer->GetInstance(), player.obj.GetInstance())) continue;
 
+        if (visibilityCheck && !thePlayer->CanEntityBeSeen(player.obj.GetInstance())) continue;
 
-	Vector3 ePos = target.pos;
-	Vector3 eLastPos = target.lastPos;
+        Vector3 playerPos = player.pos;
+        float playerHeight = 1.8f;
+        Vector3 playerHeadPos = playerPos + Vector3(0, playerHeight - 0.2f, 0);
 
-	float eHeight = target.height - 0.1;
-	Vector3 eHeadPos = ePos + Vector3(0, eHeight, 0);
-	Vector3 eLastHeadPos = eLastPos + Vector3(0, eHeight, 0);
+        Vector2 anglesToHead = Math::getAngles(headPos, playerHeadPos);
+        Vector2 difference = Math::vec_wrapAngleTo180(currentLookAngles.Invert() - anglesToHead.Invert());
 
+        float diffYaw = std::abs(difference.x);
+        float dist = headPos.Distance(playerPos);
 
-	Vector2 anglesFoot = Math::getAngles(headPos, ePos);
-	Vector2 anglesHead = Math::getAngles(headPos, eHeadPos);
+        if (diffYaw <= fov && dist <= maxRange)
+        {
+            bool isBetterTarget = false;
+            switch (targetPriority)
+            {
+            case 1:
+                if (player.health < bestHealth) {
+                    bestHealth = player.health;
+                    isBetterTarget = true;
+                }
+                break;
+            case 0:
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    isBetterTarget = true;
+                }
+                break;
+            case 2:
+            default:
+                if (diffYaw < bestDiff) {
+                    bestDiff = diffYaw;
+                    isBetterTarget = true;
+                }
+                break;
+            }
 
-	Vector2 difference = Math::vec_wrapAngleTo180(currentLookAngles.Invert() - anglesHead.Invert());
-	Vector2 differenceFoot = Math::vec_wrapAngleTo180(currentLookAngles.Invert() - anglesFoot.Invert());
+            if (isBetterTarget) {
+                target = player;
+                targetFound = true;
+            }
+        }
+    }
 
-	float offset = randomFloat(-AimAssist::randomYaw, AimAssist::randomYaw);
-	if (AimAssist::adaptive) {
-		if ((GetAsyncKeyState('D') & 0x8000) && !(GetAsyncKeyState('A') & 0x8000)) {
-			offset -= AimAssist::adaptiveOffset;
-		}
+    if (!targetFound || !target.obj.GetInstance()) {
+        debugTargetPosition = Vector3(); // Limpiar vector visual
+        return;
+    }
 
-		if ((GetAsyncKeyState('A') & 0x8000) && !(GetAsyncKeyState('D') & 0x8000)) {
-			offset += AimAssist::adaptiveOffset;
-		}
-	}
+    // --- FASE DE CÁLCULO ---
 
-	float targetYaw = currentLookAngles.x + ((difference.x + offset) / smooth);
+    Vector3 ePos = target.pos;
 
-	Vector3 renderPos = CommonData::renderPos;
-	float renderPartialTicks = CommonData::renderPartialTicks;
+    float eHeight = target.height - 0.1f;
+    Vector3 eHeadPos = ePos + Vector3(0, eHeight, 0);
 
-	if (currentLookAngles.y > anglesFoot.y || currentLookAngles.y < anglesHead.y) {
-		float targetPitchFoot = currentLookAngles.y + (differenceFoot.y / smooth);
-		float targetPitchHead = currentLookAngles.y + (difference.y / smooth);
+    Vector2 anglesFoot = Math::getAngles(headPos, ePos);
+    Vector2 anglesHead = Math::getAngles(headPos, eHeadPos);
 
-		float diffFoot = currentLookAngles.y - targetPitchFoot;
-		float diffHead = currentLookAngles.y - targetPitchHead;
-		diffFoot = diffFoot < 0 ? -diffFoot : diffFoot;
-		diffHead = diffHead < 0 ? -diffHead : diffHead;
+    Vector2 diffHead = Math::vec_wrapAngleTo180(currentLookAngles.Invert() - anglesHead.Invert());
+    Vector2 diffFoot = Math::vec_wrapAngleTo180(currentLookAngles.Invert() - anglesFoot.Invert());
 
-		float targetPitch;
-		if (diffFoot > diffHead) 
-		{
-			targetPitch = targetPitchHead;
-			data = renderPos - Vector3(0, 0.21, 0) - eLastHeadPos + (eLastHeadPos - eHeadPos) * renderPartialTicks;
-		}
-		else 
-		{
-			targetPitch = targetPitchFoot;
-			data = renderPos - Vector3(0, 0.23, 0) - eLastPos + (eLastPos - ePos) * renderPartialTicks;
-		}
-		pitchInfluenced = true;
-		targetPitch += randomFloat(-AimAssist::randomPitch, AimAssist::randomPitch);
-		thePlayer->SetAngles(Vector2(targetYaw, targetPitch));
-	}
-	else {
-		data = renderPos - eLastPos + (eLastPos - ePos) * renderPartialTicks;
-		pitchInfluenced = false;
-		thePlayer->SetAngles(Vector2(targetYaw, currentLookAngles.y + randomFloat(-AimAssist::randomPitch, AimAssist::randomPitch)));
-	}
+    float yawOffset = GetRandomFloat(-noiseYaw, noiseYaw);
+
+    // CORRECCIÓN 5: Usamos 'strafeAssist' en vez de 'adaptive'
+    if (AimAssist::strafeAssist) {
+        if ((GetAsyncKeyState('D') & 0x8000) && !(GetAsyncKeyState('A') & 0x8000)) {
+            yawOffset -= AimAssist::strafeOffset;
+        }
+        if ((GetAsyncKeyState('A') & 0x8000) && !(GetAsyncKeyState('D') & 0x8000)) {
+            yawOffset += AimAssist::strafeOffset;
+        }
+    }
+
+    float currentSmooth = GetRandomFloat(smoothMin, smoothMax);
+    if (currentSmooth < 1.0f) currentSmooth = 1.0f;
+
+    float targetYaw = currentLookAngles.x + ((diffHead.x + yawOffset) / currentSmooth);
+
+    Vector3 renderPos = CommonData::renderPos;
+    float renderPartialTicks = CommonData::renderPartialTicks;
+
+    float targetPitch = currentLookAngles.y;
+    isPitchInfluenced = false;
+
+    if (currentLookAngles.y > anglesFoot.y || currentLookAngles.y < anglesHead.y)
+    {
+        float fixToFoot = currentLookAngles.y + (diffFoot.y / currentSmooth);
+        float fixToHead = currentLookAngles.y + (diffHead.y / currentSmooth);
+
+        float absDiffFoot = std::abs(currentLookAngles.y - fixToFoot);
+        float absDiffHead = std::abs(currentLookAngles.y - fixToHead);
+
+        if (absDiffFoot > absDiffHead) {
+            targetPitch = fixToHead;
+            // Actualizar debugTargetPosition
+            debugTargetPosition = renderPos - Vector3(0, 0.21f, 0) - (target.lastPos + Vector3(0, eHeight, 0)) + ((target.lastPos - target.pos) * -1.0f * renderPartialTicks);
+        }
+        else {
+            targetPitch = fixToFoot;
+            // Actualizar debugTargetPosition
+            debugTargetPosition = renderPos - Vector3(0, 0.23f, 0) - target.lastPos + ((target.lastPos - target.pos) * -1.0f * renderPartialTicks);
+        }
+
+        // CORRECCIÓN 7: Usamos 'noisePitch' en vez de 'randomPitch'
+        targetPitch += GetRandomFloat(-noisePitch, noisePitch);
+        isPitchInfluenced = true;
+    }
+    else {
+        // Actualizar debugTargetPosition
+        debugTargetPosition = renderPos - target.lastPos + ((target.lastPos - target.pos) * -1.0f * renderPartialTicks);
+        targetPitch = currentLookAngles.y + GetRandomFloat(-noisePitch / 2, noisePitch / 2);
+    }
+
+    thePlayer->SetAngles(Vector2(targetYaw, targetPitch));
 }
 
 void AimAssist::RenderUpdate()
 {
-	if (!Enabled || !CommonData::dataUpdated) return;
-	if (fovCircle) {
+    if (!Enabled || !CommonData::dataUpdated) return;
 
-		ImVec2 screenSize = ImGui::GetWindowSize();
-		float radAimbotFov = (float)(AimAssist::fov * PI / 180);
-		float radViewFov = (float)(CommonData::fov * PI / 180);
-		float circleRadius = tanf(radAimbotFov / 2) / tanf(radViewFov / 2) * screenSize.x / 1.7325;
+    if (fovCircle) {
+        ImVec2 screenSize = ImGui::GetWindowSize();
+        float radAimbotFov = (float)(AimAssist::fov * PI / 180);
+        float radViewFov = (float)(CommonData::fov * PI / 180);
+        float circleRadius = tanf(radAimbotFov / 2) / tanf(radViewFov / 2) * screenSize.x / 1.7325f;
 
-		ImGui::GetWindowDrawList()->AddCircle(ImVec2(screenSize.x / 2, screenSize.y / 2), circleRadius, ImColor(25, 255, 255, 75), circleRadius / 3, 1);
-	}
+        ImGui::GetWindowDrawList()->AddCircle(ImVec2(screenSize.x / 2, screenSize.y / 2), circleRadius, ImColor(255, 255, 255, 100), 100, 1.0f);
+    }
 
-	if (aimAssistFeedback) {
-		if (data.x == NAN) return;
-		ImVec2 screenSize = ImGui::GetWindowSize();
+    if (aimAssistFeedback) {
+        // Usar debugTargetPosition
+        if (std::isnan(debugTargetPosition.x)) return;
 
-		Vector2 w2s;
-		if (CWorldToScreen::WorldToScreen(data, CommonData::modelView, CommonData::projection, screenSize.x, screenSize.y, w2s))
-		{
-			if (w2s.x == NAN) return;
+        ImVec2 screenSize = ImGui::GetWindowSize();
+        Vector2 w2s;
 
-			if (pitchInfluenced)
-			{
-				ImGui::GetWindowDrawList()->AddLine(ImVec2(screenSize.x / 2, screenSize.y / 2), ImVec2(w2s.x, w2s.y), ImColor(25, 255, 255), 1.5);
-			}
-			else {
-				ImGui::GetWindowDrawList()->AddLine(ImVec2(screenSize.x / 2, screenSize.y / 2), ImVec2(w2s.x, screenSize.y / 2), ImColor(25, 255, 255), 1.5);
-			}
-		}
-	}
+        if (CWorldToScreen::WorldToScreen(debugTargetPosition, CommonData::modelView, CommonData::projection, screenSize.x, screenSize.y, w2s))
+        {
+            if (std::isnan(w2s.x)) return;
+            ImGui::GetWindowDrawList()->AddLine(ImVec2(screenSize.x / 2, screenSize.y / 2), ImVec2(w2s.x, w2s.y), ImColor(0, 255, 255, 200), 1.5f);
+        }
+    }
 }
 
 void AimAssist::RenderMenu()
 {
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
+    if (ImGui::BeginChild("AimAssistSettings", ImVec2(0, 300), true)) {
 
-	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 20);
+        Menu::DoToggleButtonStuff(1001, "Enable Aim Assist", &AimAssist::Enabled);
+        ImGui::Separator();
 
-	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.12f, 0.5));
-	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 10);
+        Menu::DoToggleButtonStuff(1002, "Click Only", &AimAssist::clickOnly);
+        Menu::DoToggleButtonStuff(1003, "Visibility Check", &AimAssist::visibilityCheck);
+        Menu::DoSliderStuff(1004, "FOV", &AimAssist::fov, 1.0f, 90.0f);
+        Menu::DoSliderStuff(1005, "Distance", &AimAssist::aimDistance, 3.0f, 6.0f);
 
-	if (ImGui::BeginChild("", ImVec2(425, 381))) {
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3);
-		Menu::DoToggleButtonStuff(234402345634000, "Toggle Aim Assist", &AimAssist::Enabled);
+        ImGui::Text("Smoothing (Humanization)");
+        Menu::DoSliderStuff(1006, "Min Smooth", &AimAssist::smoothMin, 1.0f, 40.0f);
+        Menu::DoSliderStuff(1007, "Max Smooth", &AimAssist::smoothMax, 1.0f, 40.0f);
 
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5);
-		ImGui::Separator();
-		Menu::DoSliderStuff(23084562545, "FOV", &AimAssist::fov, 5.0f, 180.0f);
-		Menu::DoSliderStuff(869765007, "Lock Distance", &AimAssist::aimDistance, 1.0f, 8.0f);
-		Menu::DoSliderStuff(2314057445345, "Smoothness", &AimAssist::smooth, 1.0f, 90.0f);
-		Menu::DoToggleButtonStuff(22645342, "Visbility Check", &AimAssist::visibilityCheck);
-		Menu::DoToggleButtonStuff(206573465433442, "Left Button To Aim", &AimAssist::aimKey);
+        if (AimAssist::smoothMin > AimAssist::smoothMax) AimAssist::smoothMin = AimAssist::smoothMax;
 
-		ImGui::SetCursorPos(ImVec2(20, ImGui::GetCursorPosY() + 5));
-		ImGui::Text("Target Priority");
-		ImGui::SameLine();
-		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 175);
+        ImGui::Separator();
 
-		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0.55, 0.55, 1));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0.65, 0.65, 1));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0.8, 0.8, 1));
+        Menu::DoToggleButtonStuff(1008, "Strafe Assist", &AimAssist::strafeAssist);
+        if (AimAssist::strafeAssist) {
+            // CORRECCIÓN 8: Nombre actualizado en el menú
+            Menu::DoSliderStuff(1009, "Strafe Offset", &AimAssist::strafeOffset, 0.0f, 5.0f);
+        }
 
-		ImGui::Combo("tp", &AimAssist::targetPriority, AimAssist::targetPriorityList, 3);
+        // CORRECCIÓN 9: Nombres actualizados en el menú
+        Menu::DoSliderStuff(1010, "Noise Yaw (Jitter)", &AimAssist::noiseYaw, 0.0f, 5.0f);
+        Menu::DoSliderStuff(1011, "Noise Pitch (Jitter)", &AimAssist::noisePitch, 0.0f, 1.0f);
 
-		ImGui::PopStyleColor(3);
-		ImGui::PopStyleVar();
+        ImGui::Separator();
 
-		ImGui::Separator();
+        ImGui::Text("Target Priority");
+        ImGui::Combo("##priority", &AimAssist::targetPriority, AimAssist::targetPriorityList, 3);
 
-		Menu::DoToggleButtonStuff(5635678756247, "Adapt to strafing", &AimAssist::adaptive);
-		Menu::DoSliderStuff(457323434, "Adaptive strafing offset", &AimAssist::adaptiveOffset, 0.1f, 15.f);
-		ImGui::SetCursorPos(ImVec2(20, ImGui::GetCursorPosY() + 5));
+        ImGui::Separator();
 
-		ImGui::Separator();
-		Menu::DoSliderStuff(3464340056, "Yaw Randomness", &AimAssist::randomYaw, 0.0f, 10.0f);
-		Menu::DoSliderStuff(54034352347, "Pitch Randomness", &AimAssist::randomPitch, 0.0f, 1);
-		ImGui::SetCursorPos(ImVec2(20, ImGui::GetCursorPosY() + 5));
+        Menu::DoToggleButtonStuff(1012, "Draw FOV", &AimAssist::fovCircle);
+        Menu::DoToggleButtonStuff(1013, "Target Line", &AimAssist::aimAssistFeedback);
 
-		ImGui::Separator();
-		Menu::DoToggleButtonStuff(76523436400, "FOV Circle", &AimAssist::fovCircle);
-		Menu::DoToggleButtonStuff(230476545677654654, "Feedback Line", &AimAssist::aimAssistFeedback);
-
-		ImGui::EndChild();
-	}
-	ImGui::PopStyleVar();
-	ImGui::PopStyleColor();
+        ImGui::EndChild();
+    }
+    ImGui::PopStyleVar();
 }

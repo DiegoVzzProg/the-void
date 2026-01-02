@@ -13,8 +13,8 @@ struct Java
 	static bool AssignClass(std::string name, jclass &out);
 	static jclass findClass(JNIEnv* p_env, jvmtiEnv* p_tienv, const std::string& path);
 
-	static inline JNIEnv* Env;
-	static inline jvmtiEnv* tiEnv;
-	static inline bool Initialized;
+	static inline JNIEnv* Env = nullptr;
+	static inline jvmtiEnv* tiEnv = nullptr;
+	static inline jobject classLoader = nullptr;
+	static inline bool Initialized = false;
 };
-
