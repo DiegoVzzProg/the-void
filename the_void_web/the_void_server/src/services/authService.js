@@ -1,9 +1,8 @@
 const prisma = require("../config/prisma"); // Importamos el Singleton
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
+const TokenManager = require("../utils/tokenManager");
 
 const SALT_ROUNDS = 10;
-const JWT_SECRET = process.env.JWT_SECRET || "SUPER_SECRET_KEY_THE_VOID";
 
 class AuthService {
   /**
@@ -14,30 +13,44 @@ class AuthService {
     try {
       const { email, password, username } = params;
 
-      // 1. Verificar duplicados
-      const existsUser = await prisma.void_users.findUnique({
-        where: { email: email },
+      return await prisma.$transaction(async (tx) => {
+        // 1. Verificar duplicados
+        const existsUser = await prisma.void_users.findUnique({
+          where: { email: email },
+        });
+
+        if (existsUser) {
+          throw new Error("The user or email is already registered");
+        }
+
+        // 2. Hashear password
+        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+        // 3. Crear usuario (HWID se queda en null por defecto hasta el primer login)
+        const user = await prisma.void_users.create({
+          data: {
+            username: username,
+            email: email,
+            password: hashedPassword,
+            banned: false,
+            hwid: null,
+          },
+        });
+
+        const tokens = TokenManager.generateTokens(
+          user,
+          user.hwid || "WEB_SESSION"
+        );
+
+        return {
+          user: {
+            email: user.email,
+            username: user.username,
+          },
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+        };
       });
-
-      if (existsUser) {
-        throw new Error("The user or email is already registered");
-      }
-
-      // 2. Hashear password
-      const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-
-      // 3. Crear usuario (HWID se queda en null por defecto hasta el primer login)
-      const newUser = await prisma.void_users.create({
-        data: {
-          username: username,
-          email: email,
-          password: hashedPassword,
-          banned: false,
-          hwid: null, // Explícito para claridad
-        },
-      });
-
-      return { success: true, message: "Successfully registered user" };
     } catch (error) {
       throw error;
     }
@@ -48,7 +61,7 @@ class AuthService {
    * @param {Object} params - { email, password, hwid }
    */
   async loginUser(params) {
-    const { email, password, hwid } = params; // IMPORTANTE: Aquí extraemos el hwid que viene del cliente C++
+    const { email, password, hwid } = params;
 
     // 1. Buscar usuario
     const user = await prisma.void_users.findUnique({
@@ -70,33 +83,36 @@ class AuthService {
       throw new Error("Invalid credentials");
     }
 
-    // 4. --- LÓGICA DE HWID (GHOST CLIENT) ---
-    if (!user.hwid) {
-      await prisma.void_users.update({
-        where: { id: user.id },
-        data: { hwid: hwid },
-      });
-    } else {
-      if (user.hwid !== hwid) {
-        throw new Error(
-          "HWID Mismatch: Your license is tied to another PC. Contact support to reset."
-        );
+    if (hwid) {
+      if (!user.hwid) {
+        await prisma.void_users.update({
+          where: { id: user.id },
+          data: { hwid: hwid },
+        });
+      } else {
+        if (user.hwid !== hwid) {
+          throw new Error("HWID Mismatch: Your license is tied to another PC.");
+        }
       }
     }
+    // CASO B: Es el Panel Web (hwid viene undefined o null)
+    else {
+      // Permitimos el login web sin validar HWID.
+      // Opcional: Podrías restringir acciones sensibles en la web si quieres.
+    }
 
-    const token = jwt.sign(
-      { id: user.id, role: user.role, hwid: hwid }, // Guardamos el HWID en el token también
-      JWT_SECRET,
-      { expiresIn: "24h" }
+    const tokens = TokenManager.generateTokens(
+      user,
+      user.hwid || "WEB_SESSION"
     );
 
     return {
-      token,
       user: {
-        id: user.id,
+        email: user.email,
         username: user.username,
-        role: user.role,
       },
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     };
   }
 }

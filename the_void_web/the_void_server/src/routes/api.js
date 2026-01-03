@@ -4,16 +4,25 @@ const authSchema = require("../schemas/authSchema");
 const commandController = require("../controllers/commandController");
 const commandSchema = require("../schemas/commandSchema");
 
+const authenticate = require("../middlewares/authMiddleware");
 const api = async (fastify, options) => {
   fastify.post(
     "/command",
-    { schema: commandSchema },
+    { schema: commandSchema, onRequest: [authenticate] },
     commandController.processCommand
   );
 
   fastify.post(
     "/auth/register",
-    { schema: authSchema.register },
+    {
+      schema: authSchema.register,
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: "1 hour",
+        },
+      },
+    },
     authController.register
   );
   fastify.post(

@@ -8,6 +8,17 @@ const start = async () => {
   try {
     await fastify.register(require("@fastify/cors"), { origin: true });
     await fastify.register(require("@fastify/websocket"));
+    await fastify.register(require("@fastify/rate-limit"), {
+      max: 100, // Máximo 100 peticiones globales
+      timeWindow: "1 minute", // por minuto por IP
+      errorResponseBuilder: function (request, context) {
+        return {
+          code: 429,
+          error: "Too Many Requests",
+          message: "You've gone too far. Slow down, cowboy.",
+        };
+      },
+    });
 
     await fastify.register(api, { prefix: "/api" });
 
