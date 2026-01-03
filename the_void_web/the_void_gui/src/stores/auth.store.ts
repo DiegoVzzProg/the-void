@@ -1,24 +1,33 @@
 import { useCookies } from "@vueuse/integrations/useCookies";
+import { defineStore } from "pinia";
 
-export const authCookies = () => {
-  const cookies = useCookies(["__void_token_refresh"]);
-
-  const saveTokenRefresh = (token: string) => {
-    cookies.set("__void_token_refresh", token, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-      secure: true,
-      sameSite: "strict",
-    });
-  };
-
-  const getTokenRefresh = () => {
-    return cookies.get("__void_token_refresh");
-  };
-
-  const deleteTokenRefresh = () => {
-    cookies.remove("__void_token_refresh");
-  };
-
-  return { saveTokenRefresh, getTokenRefresh, deleteTokenRefresh };
-};
+const authCookies = useCookies(["__voidRefreshToken", "__voidAccessToken"]);
+export const useAuthStorage = defineStore("authStorage", {
+  state: () => ({
+    optionActive: true as boolean,
+  }),
+  actions: {
+    deactivateOption(value: "yes" | "no") {
+      this.optionActive = value === "yes" ? false : true;
+    },
+    saveToken(
+      name: "__voidRefreshToken" | "__voidAccessToken",
+      value: string,
+      maxAge: number
+    ) {
+      authCookies.set(name, value, {
+        path: "/",
+        maxAge: maxAge, //
+        secure: true,
+        sameSite: "strict",
+      });
+    },
+    deleteToken(name: "__voidRefreshToken" | "__voidAccessToken") {
+      authCookies.remove(name);
+    },
+    getCookie(name: string) {
+      authCookies.get(name);
+    },
+  },
+  persist: true,
+});

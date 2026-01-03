@@ -33,10 +33,11 @@ export class Api {
   private InitializeInterceptors(): void {
     Api.axios.interceptors.request.use(
       async (config) => {
-        // const token: string = Functions.getCookie("__user__token");
-        // if (token) {
-        //   config.headers["Authorization"] = `Bearer ${token}`;
-        // }
+        const token: string = ""; // Functions.getCookie("__user__token");
+        if (token) {
+          config.headers["Authorization"] = `Bearer ${token}`;
+          config.headers["x-hwid"] = `WEB_SESSION`;
+        }
 
         return config;
       },

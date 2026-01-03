@@ -13,7 +13,7 @@ const pinia = createPinia();
 
 // 2. Conectar el plugin a Pinia
 pinia.use(piniaPluginPersistedstate);
-
+app.use(pinia);
 app.use(plugin, defaultConfig(config));
 
 app.use(router).mount("#app");

@@ -4,14 +4,28 @@ import {
   type RouteRecordRaw,
 } from "vue-router";
 
-import PanelView from "./views/PanelView.vue";
+import WelcomeView from "./views/options/WelcomeView.vue";
+import AuthView from "./views/AuthView.vue";
+import ModulesView from "./views/options/ModulesView.vue";
 
 const routes: Array<RouteRecordRaw> = [
-  { path: "/:pathMatch(.*)*", redirect: { name: "panel" } },
+  { path: "/:pathMatch(.*)*", redirect: { name: "information" } },
   {
-    path: "/panel",
-    name: "panel",
-    component: PanelView,
+    path: "/information",
+    name: "information",
+    component: WelcomeView,
+    meta: { layout: "Main" },
+  },
+  {
+    path: "/auth",
+    name: "auth",
+    component: AuthView,
+    meta: { layout: "Main" },
+  },
+  {
+    path: "/modules",
+    name: "modules",
+    component: ModulesView,
     meta: { layout: "Main" },
   },
 ];

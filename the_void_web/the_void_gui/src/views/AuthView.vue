@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { LockKeyhole, Mail, User, UserPlus } from 'lucide-vue-next';
-import type { IAuthResponse, IRegister } from '../interfaces/auth.interface';
+import type { IRegister } from '../interfaces/auth.interface';
 import { AuthService } from '../services/auth.service';
-import { useCookies } from '@vueuse/integrations/useCookies'
-import { authCookies } from '../stores/auth.store';
+import { useAuthStorage } from '../stores/auth.store';
+import { useOptionStorage } from '../stores/options.store';
+import { useUserStorage } from '../stores/user.store';
 
 const voidTheme = {
     outer: 'mb-5 group w-full',
@@ -30,9 +31,15 @@ const handleRegister = async (formData: any) => {
         }
 
         const data = res.data;
-        authCookies().saveTokenRefresh(data.refreshToken);
+        useAuthStorage()
+            .saveToken("__voidAccessToken", data.accessToken, 60 * 60 * 24 * 7);
+        useAuthStorage()
+            .saveToken("__voidRefreshToken", data.refreshToken, 60 * 15);
 
-        
+        useAuthStorage().deactivateOption("yes");
+        useOptionStorage().set(1);
+
+        useUserStorage().set(data.user.username, data.user.email);
     }
     catch (error: any) {
         console.error(error);

@@ -1,4 +1,49 @@
 <script setup lang="ts">
+import { Form, KeyRound, LayoutDashboard, Package, Settings2, TvMinimal, User } from 'lucide-vue-next';
+import { watch } from 'vue';
+import Logo from '../components/Logo.vue';
+import { useAuthStorage } from '../stores/auth.store';
+import { useOptionStorage } from '../stores/options.store';
+import { useUserStorage } from '../stores/user.store';
+
+const iconMap = {
+    LayoutDashboard,
+    Package,
+    Settings2,
+    TvMinimal,
+    Form,
+    KeyRound
+};
+
+type IconName = keyof typeof iconMap;
+const options = [
+    { id: 1, icono: "TvMinimal", text: "information", visible: true },
+    { id: 2, icono: "LayoutDashboard", text: "dashboard", visible: false },
+    { id: 3, icono: "Package", text: "modules", visible: false },
+    { id: 4, icono: "Settings2", text: "settings", visible: false },
+    { id: 5, icono: "Form", text: "forum", visible: false },
+    { id: 6, icono: "KeyRound", text: "auth", visible: false },
+]
+
+watch(
+    () => useAuthStorage().optionActive,
+    (newValue) => {
+        if (options[5]) {
+            options[5].visible = newValue ?? false;
+        }
+    }
+);
+
+const getIcon = (name: string) => {
+    if (name && name in iconMap) {
+        return iconMap[name as IconName];
+    }
+    return null;
+};
+
+const onSelectOption = (option: string): void => {
+    useOptionStorage().set(option);
+}
 
 </script>
 
@@ -16,7 +61,44 @@
     </div>
 
     <main class="flex flex-col w-full h-dvh overflow-auto">
-        <slot></slot>
+        <div class="flex-1 flex lg:items-center lg:justify-center lg:p-4">
+            <div
+                class="w-full max-w-[1200px] bg-[#0a0a0c] h-full lg:max-h-[680px] border border-[#232732] lg:rounded-4xl flex max-lg:flex-col-reverse z-10 overflow-hidden">
+                <aside
+                    class="flex flex-row lg:flex-col bg-[#0e1012] w-full lg:max-w-3xs h-full max-lg:max-h-[80px] lg:border-r lg:border-r-[#232732] gap-4 p-4">
+                    <div class="flex items-center justify-start px-4 lg:py-6 max-lg:hidden">
+                        <Logo />
+                    </div>
+                    <div class="flex lg:flex-col max-lg:justify-between gap-2 flex-1">
+                        <template v-for="item in options" :key="item.id">
+                            <button v-if="item.visible" :class="[
+                                'lg:w-full flex items-center p-3 rounded-xl transition-all duration-200 gap-2',
+                                useOptionStorage().option == item.text ? 'bg-[#6365f13d] text-[#6366F1]' : 'hover:bg-white/5 hover:text-white text-[#64748B] shadow-inner'
+                            ]" v-on:click="onSelectOption(item.text)">
+                                <component :is="getIcon(item.icono)"
+                                    :class="['transition-all duration-200', useOptionStorage().option == item.text ? 'size-[28px]' : 'size-[24px]']" />
+                                <span class="max-lg:hidden">{{ item.text }}</span>
+                            </button>
+                        </template>
+                    </div>
+                    <div v-if="useUserStorage().username !== ''"
+                        class="bg-[#18181B] border border-[#232732] rounded-xl lg:py-4 px-4 lg:w-full flex flex-row lg:flex-col items-center gap-2 lg:mb-2 shadow-lg">
+                        <button
+                            class="lg:size-16 rounded-full overflow-hidden border border-indigo-500 bg-[#222] flex items-center justify-center">
+                            <User class="p-1 lg:size-8 stroke-slate-400" />
+                        </button>
+                        <div class="flex flex-col items-center text-sm lg:text-md">
+                            <span class="gradient-text lg:text-white leading-tight" v-text="'@user'">
+                            </span>
+                            <small class="text-[#64748B]">correo@gmail.com</small>
+                        </div>
+                    </div>
+                </aside>
+                <section class="flex flex-col flex-1 p-2 lg:p-4">
+                    <slot></slot>
+                </section>
+            </div>
+        </div>
     </main>
 </template>
 
