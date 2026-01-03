@@ -37,10 +37,7 @@ class AuthService {
           },
         });
 
-        const tokens = TokenManager.generateTokens(
-          user,
-          user.hwid || "WEB_SESSION"
-        );
+        const tokens = TokenManager.generateTokens(user, "WEB_SESSION");
 
         return {
           user: {
@@ -60,8 +57,8 @@ class AuthService {
    * Login con validación y vinculación de HWID
    * @param {Object} params - { email, password, hwid }
    */
-  async loginUser(params) {
-    const { email, password, hwid } = params;
+  async loginUser(params, hwid) {
+    const { email, password } = params;
 
     // 1. Buscar usuario
     const user = await prisma.void_users.findUnique({
@@ -83,7 +80,7 @@ class AuthService {
       throw new Error("Invalid credentials");
     }
 
-    if (hwid) {
+    if (hwid && !hwid.startsWith("WEB-")) {
       if (!user.hwid) {
         await prisma.void_users.update({
           where: { id: user.id },

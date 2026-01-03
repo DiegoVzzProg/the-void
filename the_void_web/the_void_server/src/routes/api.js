@@ -13,6 +13,12 @@ const api = async (fastify, options) => {
   );
 
   fastify.post(
+    "/command/save-config",
+    { schema: commandSchema, onRequest: [authenticate] },
+    commandController.saveConfig
+  );
+
+  fastify.post(
     "/auth/register",
     {
       schema: authSchema.register,

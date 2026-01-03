@@ -13,6 +13,7 @@ const TokenManager = {
   generateTokens: (user, hwid) => {
     const payload = {
       id: user.id,
+      hwid: hwid,
     };
 
     // 1. Access Token: Vida corta (15 minutos)

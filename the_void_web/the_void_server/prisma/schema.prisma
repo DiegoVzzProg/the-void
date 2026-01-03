@@ -13,5 +13,19 @@ model void_users {
   username String  @db.VarChar(16)
   password String  @db.VarChar(255)
   hwid     String? @unique @db.VarChar(250)
-  banned   Boolean @default(false) // Le agregué un valor por defecto para evitar errores
+  banned   Boolean @default(false)
+
+  configs void_module_config[]
+}
+
+model void_module_config {
+  id         String     @id @default(uuid())
+  user_id    String
+  user       void_users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  module     String
+  action     String
+  settings   Json
+  conditions Json       @default("[]")
+
+  @@unique([user_id, module])
 }
