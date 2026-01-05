@@ -38,8 +38,7 @@ const autoClickerOptions = ref<SelectOption[]>([
     { label: "inventory", value: "inventory" },
     { label: "auto block hit", value: "auto-block-hit" },
     { label: "weapon check", value: "weapon-check" },
-    { label: "ignore blocks", value: "ignore-blocks" },
-    { label: "exhaustion effect", value: "exhaustion" },
+    { label: "ignore blocks", value: "ignore-blocks" }
 
 ]);
 
@@ -59,7 +58,7 @@ const onChangeAutoClickerConditions = async (values: string[], valuesOptionsWhit
 
     if (values.includes("blatan")) {
         autoClickerSliderMax.value = 80;
-    } else {
+    } else if (!values.includes("blatan") && autoClickerSliderMax.value === 80) {
         autoClickerSliderMax.value = 24;
         autoClickerValue.value = 12;
     }

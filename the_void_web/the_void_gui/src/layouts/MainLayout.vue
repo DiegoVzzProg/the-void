@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { Form, KeyRound, LayoutDashboard, Package, Settings2, TvMinimal, User } from 'lucide-vue-next';
-import { watch } from 'vue';
+import { onMounted, watch } from 'vue';
 import Logo from '../components/Logo.vue';
 import { useAuthStorage } from '../stores/auth.store';
-import { useOptionStorage } from '../stores/options.store';
 import { useUserStorage } from '../stores/user.store';
+import { Utils } from '../utilities/utilities';
+import { useRoute } from 'vue-router';
 
+
+const router = useRoute();
 const iconMap = {
     LayoutDashboard,
     Package,
@@ -17,18 +20,24 @@ const iconMap = {
 
 type IconName = keyof typeof iconMap;
 const options = [
-    { id: 1, icono: "TvMinimal", text: "information", visible: true },
-    { id: 2, icono: "LayoutDashboard", text: "dashboard", visible: false },
-    { id: 3, icono: "Package", text: "modules", visible: false },
-    { id: 4, icono: "Settings2", text: "settings", visible: false },
-    { id: 5, icono: "Form", text: "forum", visible: false },
-    { id: 6, icono: "KeyRound", text: "auth", visible: false },
+    { id: 1, icono: "TvMinimal", text: "information", visible: true, params: {} },
+    { id: 2, icono: "LayoutDashboard", text: "dashboard", visible: false, params: {} },
+    { id: 3, icono: "Package", text: "modules", visible: true, params: {} },
+    { id: 4, icono: "Settings2", text: "settings", visible: false, params: {} },
+    { id: 5, icono: "Form", text: "forum", visible: false, params: {} },
+    { id: 6, icono: "KeyRound", text: "auth", visible: useAuthStorage().optionActive, params: { view: "login" } },
 ]
+
+onMounted(() => {
+})
 
 watch(
     () => useAuthStorage().optionActive,
     (newValue) => {
+        console.log(newValue);
         if (options[5]) {
+            console.log(newValue);
+
             options[5].visible = newValue ?? false;
         }
     }
@@ -41,8 +50,12 @@ const getIcon = (name: string) => {
     return null;
 };
 
-const onSelectOption = (option: string): void => {
-    useOptionStorage().set(option);
+const seeOption = (page: string, params: Record<string, string> | undefined) => {
+    const site = new Utils();
+    site.RedirectPage({
+        name: page,
+        params: params
+    });
 }
 
 </script>
@@ -73,10 +86,10 @@ const onSelectOption = (option: string): void => {
                         <template v-for="item in options" :key="item.id">
                             <button v-if="item.visible" :class="[
                                 'lg:w-full flex items-center p-3 rounded-xl transition-all duration-200 gap-2',
-                                useOptionStorage().option == item.text ? 'bg-[#6365f13d] text-[#6366F1]' : 'hover:bg-white/5 hover:text-white text-[#64748B] shadow-inner'
-                            ]" v-on:click="onSelectOption(item.text)">
+                                router.name === item.text ? 'bg-[#6365f13d] text-[#6366F1]' : 'hover:bg-white/5 hover:text-white text-[#64748B] shadow-inner'
+                            ]" @click="seeOption(item.text, item.params as Record<string, string> | undefined)">
                                 <component :is="getIcon(item.icono)"
-                                    :class="['transition-all duration-200', useOptionStorage().option == item.text ? 'size-[28px]' : 'size-[24px]']" />
+                                    :class="['transition-all duration-200', router.name === item.text ? 'size-[28px]' : 'size-[24px]']" />
                                 <span class="max-lg:hidden">{{ item.text }}</span>
                             </button>
                         </template>
@@ -88,9 +101,9 @@ const onSelectOption = (option: string): void => {
                             <User class="p-1 lg:size-8 stroke-slate-400" />
                         </button>
                         <div class="flex flex-col items-center text-sm lg:text-md">
-                            <span class="gradient-text lg:text-white leading-tight" v-text="'@user'">
+                            <span class="gradient-text lg:text-white leading-tight" v-text="useUserStorage().username">
                             </span>
-                            <small class="text-[#64748B]">correo@gmail.com</small>
+                            <small class="text-[#64748B]" v-text="useUserStorage().email"></small>
                         </div>
                     </div>
                 </aside>

@@ -1,5 +1,6 @@
 import axios, { AxiosError, type AxiosInstance } from "axios";
 import type { IApiRequest, IApiResponse } from "../interfaces/api.interfaces";
+import { useAuthStorage } from "../stores/auth.store";
 export class Api {
   private static instance: Api | null = null;
   private static axios: AxiosInstance;
@@ -33,7 +34,7 @@ export class Api {
   private InitializeInterceptors(): void {
     Api.axios.interceptors.request.use(
       async (config) => {
-        const token: string = ""; // Functions.getCookie("__user__token");
+        const token: string = useAuthStorage().getCookie("__voidAccessToken");
         if (token) {
           config.headers["Authorization"] = `Bearer ${token}`;
           config.headers["x-hwid"] = `WEB_SESSION`;

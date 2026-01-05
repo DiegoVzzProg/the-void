@@ -17,7 +17,7 @@ const routes: Array<RouteRecordRaw> = [
     meta: { layout: "Main" },
   },
   {
-    path: "/auth",
+    path: "/auth/:view",
     name: "auth",
     component: AuthView,
     meta: { layout: "Main" },

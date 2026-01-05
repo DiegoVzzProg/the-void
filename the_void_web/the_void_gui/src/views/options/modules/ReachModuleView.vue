@@ -9,17 +9,17 @@ import { CommandModuleService } from '../../../services/command-module.service';
 
 const commandModule = async (commandParams: ICommand) => {
     const commandService = new CommandModuleService();
+    //
+    //const saveConfig = await commandService.CommandSaveConfig(commandParams);
+    //const dataSaveConfig = saveConfig.data;
+    //
+    //if (!dataSaveConfig) {
+    //    return;
+    //}
 
-    const saveConfig = await commandService.CommandSaveConfig(commandParams);
-    const dataSaveConfig = saveConfig.data;
-
-    if (!dataSaveConfig) {
-        return;
-    }
-
-    if (dataSaveConfig.status !== "Connected") {
-        return;
-    }
+    //if (dataSaveConfig.status !== "Connected") {
+    //    return;
+    //}
 
     const res = await commandService.Command(commandParams);
     const data = res.data;

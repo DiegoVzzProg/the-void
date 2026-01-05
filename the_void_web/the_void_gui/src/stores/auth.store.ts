@@ -25,8 +25,8 @@ export const useAuthStorage = defineStore("authStorage", {
     deleteToken(name: "__voidRefreshToken" | "__voidAccessToken") {
       authCookies.remove(name);
     },
-    getCookie(name: string) {
-      authCookies.get(name);
+    getCookie(name: "__voidRefreshToken" | "__voidAccessToken") {
+      return authCookies.get(name);
     },
   },
   persist: true,
