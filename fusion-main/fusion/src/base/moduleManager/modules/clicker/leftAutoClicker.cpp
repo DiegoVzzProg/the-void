@@ -16,6 +16,9 @@ static long long nextReleaseTime = 0; // Cuándo toca hacer el próximo Click Up
 
 void LeftAutoClicker::Update()
 {
+    //if (GetAsyncKeyState('P') & 1) {
+    //    SDK::Minecraft->DebugPrintCurrentScreen();
+    //}
 
     {
         std::lock_guard<std::mutex> lock(Web::candado);

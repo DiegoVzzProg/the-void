@@ -68,6 +68,9 @@ void Reach::Update()
             Reach::hitChance = settings.value("hitchance", 100.0f);
             
             Reach::Randomization = Web::ActivatedCondition("randomization");
+
+            Web::is_new_command = false;
+            Web::module_manager_value = nullptr;
         }
     }
 

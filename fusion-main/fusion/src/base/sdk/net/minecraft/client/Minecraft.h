@@ -23,7 +23,7 @@ struct CMinecraft : IClass
 	bool IsInventory();
 
 	CMovingObjectPosition GetMouseOver();
-
+	void DebugPrintCurrentScreen();
 	CEntityPlayerSP* thePlayer;
 	CWorldClient* theWorld;
 	CActiveRenderInfo* activeRenderInfo;

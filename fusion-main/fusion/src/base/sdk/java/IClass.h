@@ -9,7 +9,8 @@ struct IClass
 {
 	std::map<std::string, jmethodID> MethodIDs;
 	std::map<std::string, jfieldID> FieldIDs;
-
+	std::map<std::string, jclass> JFindClass;
+	
 	jobject Instance = 0;
 	jclass Class = 0;
 

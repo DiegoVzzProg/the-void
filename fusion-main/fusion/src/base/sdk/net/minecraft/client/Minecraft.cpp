@@ -36,14 +36,8 @@ CMinecraft::CMinecraft()
 	// not used lol
 	this->MethodIDs["clickMouse"] = Java::Env->GetMethodID(this->GetClass(), "clickMouse", "()V");
 
-	jclass localGuiInv = Java::Env->FindClass("net/minecraft/client/gui/inventory/GuiContainer");
-	if (localGuiInv) {
-		this->GuiInventoryClass = (jclass)Java::Env->NewGlobalRef(localGuiInv);
-		Java::Env->DeleteLocalRef(localGuiInv);
-	}
-	else {
-		if (Java::Env->ExceptionCheck()) Java::Env->ExceptionClear();
-	}
+	/*this->JFindClass["guiInventory"] = Java::Env->FindClass("net/minecraft/client/gui/inventory/GuiInventory");*/
+	this->GuiInventoryClass = nullptr;
 }
 
 jclass CMinecraft::GetClass()
@@ -72,29 +66,95 @@ void CMinecraft::ClickMouse()
 	Java::Env->CallVoidMethod(this->GetInstance(), this->MethodIDs["clickMouse"]);
 }
 
-bool CMinecraft::IsInventory() {
-	// 1. Si la clase no se cargó bien al inicio, devolvemos false para evitar crash
-	std::cout << "GuiInventoryClass" << std::endl;
-	std::cout << this->GuiInventoryClass << std::endl;
-
-	if (!this->GuiInventoryClass) return false;
-
-	// 2. Obtenemos la pantalla actual usando el FieldID que ya tenías
+bool CMinecraft::IsInventory() {	
+	// 1. Obtener la pantalla actual
 	jobject currentScreenObj = Java::Env->GetObjectField(this->GetInstance(), this->FieldIDs["currentScreen"]);
 
-	// 3. Si es NULL, estamos jugando (no hay GUI abierta)
+	// Si es NULL, no estamos en ninguna GUI (jugando o chat cerrado)
 	if (!currentScreenObj) return false;
 
-	// 4. Verificamos si es instancia de la clase que guardamos
-	bool isInv = Java::Env->IsInstanceOf(currentScreenObj, this->GuiInventoryClass);
+	// --- RUTA RÁPIDA (Una vez detectada la clase) ---
+	if (this->GuiInventoryClass != nullptr) {
+		bool isInv = Java::Env->IsInstanceOf(currentScreenObj, this->GuiInventoryClass);
+		Java::Env->DeleteLocalRef(currentScreenObj);
+		return isInv;
+	}
 
-	// 5. LIMPIEZA OBLIGATORIA (Solo de la referencia local del objeto pantalla)
+	// --- RUTA DE APRENDIZAJE (Solo ocurre la primera vez) ---
+	// Si llegamos aquí, es porque aún no hemos capturado la clase GuiInventory.
+	// Vamos a inspeccionar qué pantalla es esta.
+
+	jclass cls = Java::Env->GetObjectClass(currentScreenObj);
+
+	// Usamos Reflexión para obtener el nombre (igual que en tu Debug)
+	jclass classClass = Java::Env->FindClass("java/lang/Class");
+	jmethodID getNameMid = Java::Env->GetMethodID(classClass, "getName", "()Ljava/lang/String;");
+	jstring nameStr = (jstring)Java::Env->CallObjectMethod(cls, getNameMid);
+	const char* nameChars = Java::Env->GetStringUTFChars(nameStr, nullptr);
+
+	// Convertimos a string de C++ para comparar fácilmente
+	std::string className(nameChars);
+
+	// Limpieza de strings JNI
+	Java::Env->ReleaseStringUTFChars(nameStr, nameChars);
+	Java::Env->DeleteLocalRef(nameStr);
+	Java::Env->DeleteLocalRef(classClass);
+
+	// [VALIDACIÓN] Comparamos con el nombre que descubriste en el Debug
+	// Agregamos también "GuiContainer" por si en el futuro quieres que funcione en cofres.
+	bool found = false;
+	if (className == "net.minecraft.client.gui.inventory.GuiInventory" ||
+		className == "net.minecraft.client.gui.inventory.GuiContainer")
+	{
+		std::cout << "[The Void] Inventario CAPTURADO: " << className << std::endl;
+
+		// ¡BINGO! Guardamos esta clase como referencia global.
+		// Ahora IsInventory funcionará rápido las próximas veces.
+		this->GuiInventoryClass = (jclass)Java::Env->NewGlobalRef(cls);
+		found = true;
+	}
+
+	Java::Env->DeleteLocalRef(cls);
 	Java::Env->DeleteLocalRef(currentScreenObj);
 
-	return isInv;
+	return found;
 }
 
 CMovingObjectPosition CMinecraft::GetMouseOver()
 {
 	return CMovingObjectPosition(Java::Env->GetObjectField(this->Instance, this->FieldIDs["objectMouseOver"]));
+}
+
+
+void CMinecraft::DebugPrintCurrentScreen() {
+
+	// 1. Obtener objeto currentScreen
+	jobject currentScreenObj = Java::Env->GetObjectField(this->GetInstance(), this->FieldIDs["currentScreen"]);
+
+	if (!currentScreenObj) {
+		std::cout << "[DEBUG] currentScreen es NULL (Jugando o Chat cerrado)" << std::endl;
+		return;
+	}
+
+	// 2. Obtener la clase del objeto (Reflection: object.getClass())
+	jclass cls = Java::Env->GetObjectClass(currentScreenObj);
+
+	// 3. Obtener el método "getName" de java.lang.Class
+	jclass classClass = Java::Env->FindClass("java/lang/Class");
+	jmethodID getNameMid = Java::Env->GetMethodID(classClass, "getName", "()Ljava/lang/String;");
+
+	// 4. Llamar a getName() -> Devuelve un jstring
+	jstring nameStr = (jstring)Java::Env->CallObjectMethod(cls, getNameMid);
+
+	// 5. Convertir a C-String para imprimir
+	const char* nameChars = Java::Env->GetStringUTFChars(nameStr, nullptr);
+
+	std::cout << "[DEBUG] CLASE DETECTADA: " << nameChars << std::endl;
+
+	// 6. Limpieza (Vital para no crashear por memoria)
+	Java::Env->ReleaseStringUTFChars(nameStr, nameChars);
+	Java::Env->DeleteLocalRef(nameStr);
+	Java::Env->DeleteLocalRef(classClass);
+	Java::Env->DeleteLocalRef(cls);
+	Java::Env->DeleteLocalRef(currentScreenObj);
 }
