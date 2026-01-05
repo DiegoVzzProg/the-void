@@ -8,13 +8,13 @@ const authenticate = require("../middlewares/authMiddleware");
 const api = async (fastify, options) => {
   fastify.post(
     "/command",
-    { schema: commandSchema, onRequest: [authenticate] },
+    { schema: commandSchema }, //, onRequest: [authenticate]
     commandController.processCommand
   );
 
   fastify.post(
     "/command/save-config",
-    { schema: commandSchema, onRequest: [authenticate] },
+    { schema: commandSchema }, //, onRequest: [authenticate]
     commandController.saveConfig
   );
 

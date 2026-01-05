@@ -15,7 +15,9 @@ const authController = {
 
   login: async (req, reply) => {
     try {
-      const result = await authService.loginUser(req.body);
+      const currentHwid = req.headers["x-hwid"];
+
+      const result = await authService.loginUser(req.body, currentHwid);
       return reply.code(200).send(result);
     } catch (error) {
       const statusCode = error.message.includes("HWID") ? 403 : 401;

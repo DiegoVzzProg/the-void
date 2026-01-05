@@ -61,7 +61,7 @@ class AuthService {
     const { email, password } = params;
 
     // 1. Buscar usuario
-    const user = await prisma.void_users.findUnique({
+    let user = await prisma.void_users.findUnique({
       where: { email: email },
     });
 
@@ -82,7 +82,7 @@ class AuthService {
 
     if (hwid && !hwid.startsWith("WEB-")) {
       if (!user.hwid) {
-        await prisma.void_users.update({
+        user = await prisma.void_users.update({
           where: { id: user.id },
           data: { hwid: hwid },
         });
