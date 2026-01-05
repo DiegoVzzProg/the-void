@@ -10,15 +10,13 @@ import SelectOptions from '../../../components/SelectOptions.vue';
 const commandModule = async (commandParams: ICommand) => {
     const commandService = new CommandModuleService();
 
-    const res = await commandService.Command(commandParams);
-    const data = res.data;
+    const command = await commandService.Command(commandParams);
 
+    const data = command.data;
     if (!data) return;
 
-    if (data.status === "ok") {
-
-    } else {
-
+    if (data.status !== 'Connected') {
+        return;
     }
 }
 

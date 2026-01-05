@@ -9,18 +9,6 @@ import { CommandModuleService } from '../../../services/command-module.service';
 
 const commandModule = async (commandParams: ICommand) => {
     const commandService = new CommandModuleService();
-    //
-    //const saveConfig = await commandService.CommandSaveConfig(commandParams);
-    //const dataSaveConfig = saveConfig.data;
-    //
-    //if (!dataSaveConfig) {
-    //    return;
-    //}
-
-    //if (dataSaveConfig.status !== "Connected") {
-    //    return;
-    //}
-
     const res = await commandService.Command(commandParams);
     const data = res.data;
 
@@ -37,7 +25,7 @@ const reachRange = ref<number>(3.00);
 const reachRangeSlider = ref<number>(300);
 const reachRangeText = ref<string>("3.00");
 
-const reachHitChance = ref<number>(50);
+const reachHitChance = ref<number>(90);
 
 const reachConditionsSelected = ref<string[]>([]);
 const reachOptionsDefault = ref<string[]>([]);
@@ -45,7 +33,6 @@ const reachValuesBlackList = ref<string[]>([]);
 
 const reachOptions = ref<SelectOption[]>([
     { label: "randomization", value: "randomization" },
-    { label: "misplace", value: "misplace" },
     { label: "sprint only", value: "sprint-only" },
     { label: "hitboxes", value: "hitboxes" },
     { label: "visible only", value: "visible-only" }
@@ -58,7 +45,6 @@ const onUpdateReachRange = (value: number) => {
     reachRangeText.value = fixedReach;
     reachRange.value = Number(fixedReach);
 
-    console.log(Number(fixedReach), fixedReach, reachRange.value);
     reachRangeSlider.value = value;
 }
 
@@ -106,7 +92,8 @@ const onChangeConditionsReachRange = async (conditions: string[]) => {
 
 <template>
 
-    <CardModule module-text="reach" icon="Axe" v-on:module-active="onActiveReach">
+    <CardModule module-text="reach" icon="Axe" v-on:module-active="onActiveReach"
+        module-info="Prioritize safety over raw advantage. This module varies your attack distance randomly on each hit using a human probability curve. Objective: Mimic natural imperfection to evade long-term bans on primary accounts.">
         <div class="space-y-5">
             <div>
                 <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">

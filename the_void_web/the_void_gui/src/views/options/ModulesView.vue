@@ -4,6 +4,7 @@ import AutoClickerModuleView from './modules/AutoClickerModuleView.vue';
 import ReachModuleView from './modules/ReachModuleView.vue';
 import AimAssistModuleView from './modules/AimAssistModuleView.vue';
 import VelocityModuleView from './modules/VelocityModuleView.vue';
+import FirstHitModuleView from './modules/FirstHitModuleView.vue';
 
 </script>
 
@@ -18,10 +19,12 @@ import VelocityModuleView from './modules/VelocityModuleView.vue';
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 pb-10 overflow-auto h-[calc(100dvh-186px)]">
         <AutoClickerModuleView />
 
-        <ReachModuleView />
-
         <AimAssistModuleView />
-
+        
+        <ReachModuleView />
+        
+        <FirstHitModuleView />
+        
         <VelocityModuleView />
     </div>
 </template>

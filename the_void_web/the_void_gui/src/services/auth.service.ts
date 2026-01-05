@@ -3,7 +3,9 @@ import type {
   IRegister,
   IAuthResponse,
   ILogin,
+  ITokens,
 } from "../interfaces/auth.interface";
+import { useAuthStorage } from "../stores/auth.store";
 import { Api } from "./api.service";
 
 export class AuthService {
@@ -37,6 +39,23 @@ export class AuthService {
     };
 
     const response = await AuthService.api.Request<IAuthResponse>(params);
+
+    return response;
+  }
+
+  public async RefreshToken(): Promise<IApiResponse<ITokens>> {
+    const refreshToken: string =
+      useAuthStorage().getCookie("__voidRefreshToken");
+
+    const params: IApiRequest = {
+      method: "POST",
+      endpoint: `${this.prefix}/login`,
+      body: {
+        refresh_token: refreshToken,
+      },
+    };
+
+    const response = await AuthService.api.Request<ITokens>(params);
 
     return response;
   }

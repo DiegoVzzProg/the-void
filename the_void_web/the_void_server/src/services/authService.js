@@ -59,8 +59,6 @@ class AuthService {
    */
   async loginUser(params, hwid) {
     const { email, password } = params;
-
-    // 1. Buscar usuario
     let user = await prisma.void_users.findUnique({
       where: { email: email },
     });
@@ -69,12 +67,10 @@ class AuthService {
       throw new Error("Invalid credentials");
     }
 
-    // 2. Verificar Baneo
     if (user.banned) {
       throw new Error("License suspended or permanently banned.");
     }
 
-    // 3. Verificar Contraseña
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       throw new Error("Invalid credentials");
@@ -91,9 +87,7 @@ class AuthService {
           throw new Error("HWID Mismatch: Your license is tied to another PC.");
         }
       }
-    }
-    // CASO B: Es el Panel Web (hwid viene undefined o null)
-    else {
+    } else {
       // Permitimos el login web sin validar HWID.
       // Opcional: Podrías restringir acciones sensibles en la web si quieres.
     }
@@ -110,6 +104,25 @@ class AuthService {
       },
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
+    };
+  }
+
+  async refreshToken(params) {
+    const valid = TokenManager.verifyRefreshToken(params.refresh_token);
+    if (!valid) throw new Error("Expired token");
+
+    const user = {
+      id: valid.id,
+      hwid: valid.hwid,
+    };
+
+    const tokens = TokenManager.generateTokens(
+      user,
+      user.hwid || "WEB_SESSION"
+    );
+
+    return {
+      accessToken: tokens.accessToken,
     };
   }
 }

@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { Axe, Handshake, Mouse, UnfoldHorizontal } from 'lucide-vue-next';
+import Swal from 'sweetalert2'
+
+import { Axe, CircleQuestionMark, HandFist, Handshake, Mouse, UnfoldHorizontal } from 'lucide-vue-next';
 import ToogleSwitch from './ToogleSwitch.vue';
 import { ref } from 'vue';
 
 // ... (Tu lógica de iconos se mantiene igual) ...
 type IconName = keyof typeof iconMap;
-const iconMap = { Mouse, Axe, Handshake, UnfoldHorizontal };
+const iconMap = { Mouse, Axe, Handshake, UnfoldHorizontal, HandFist };
 
 const emits = defineEmits<{ (e: 'moduleActive', value: boolean): void; }>();
-const props = defineProps<{ moduleText: string, icon: string }>();
+const props = defineProps<{ moduleText: string, icon: string, moduleInfo?: string }>();
 
 const getIcon = (name: string) => iconMap[name as IconName] || null;
 
@@ -17,6 +19,29 @@ const checkedModule = ref<boolean>(false);
 const onModuleActive = () => {
     emits("moduleActive", checkedModule.value);
 }
+
+const ToolTip = () => {
+    if (!props.moduleInfo) return;
+
+    Swal.fire({
+        title: 'info',
+        text: props.moduleInfo,
+        icon: 'question',
+        confirmButtonText: 'Ok',
+        background: '#13151b',
+        color: '#ffffff',
+        backdrop: `rgba(0,0,0,0.8)`,
+        buttonsStyling: false,
+        customClass: {
+            popup: 'void-modal',
+            confirmButton: 'void-button',
+            title: 'void-title',
+            htmlContainer: 'void-text',
+            icon: 'void-icon'
+        }
+    })
+}
+
 </script>
 
 <template>
@@ -38,6 +63,10 @@ const onModuleActive = () => {
                     :class="checkedModule ? 'text-white drop-shadow-sm' : 'text-zinc-400'">
                     {{ props.moduleText }}
                 </span>
+                <button v-if="props.moduleInfo" v-on:click="ToolTip"
+                    :class="checkedModule ? 'bg-[#6366f1] border-[#6366f1] text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]' : ' border-white/10 text-zinc-500'">
+                    <CircleQuestionMark class="size-4" />
+                </button>
             </div>
 
             <ToogleSwitch v-model="checkedModule" v-on:change="onModuleActive" />
@@ -66,5 +95,73 @@ const onModuleActive = () => {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #52525b;
+}
+
+/* --- Estilos del Modal (La tarjeta oscura) --- */
+.void-modal {
+    border: 1px solid rgba(124, 58, 237, 0.3);
+    /* Borde sutil morado */
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+    border-radius: 16px !important;
+    font-family: 'Inter', system-ui, sans-serif;
+    /* Fuente limpia */
+}
+
+/* --- Título --- */
+.void-title {
+    font-weight: 700 !important;
+    font-size: 1.8rem !important;
+    letter-spacing: -0.5px;
+}
+
+/* --- Texto del cuerpo --- */
+.void-text {
+    color: #a1a1aa !important;
+    /* Gris claro suave */
+    font-size: 1.1rem !important;
+}
+
+/* --- El Botón (Estilo "AimAssist Active") --- */
+.void-button {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    /* Gradiente morado */
+    color: white;
+    padding: 12px 32px;
+    border-radius: 12px;
+    /* Bordes redondeados como en la imagen */
+    border: none;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    /* Resplandor (Glow) */
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.void-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+}
+
+.void-button:active {
+    transform: translateY(0);
+}
+
+/* --- Personalización del Icono (Opcional: Cambiarlo a Morado) --- */
+/* Por defecto es verde. Esto lo fuerza a ser morado para combinar con tu UI */
+.void-icon.swal2-success {
+    border-color: #8b5cf6 !important;
+    /* Anillo morado */
+}
+
+.void-icon.swal2-success [class^='swal2-success-line'] {
+    background-color: #8b5cf6 !important;
+    /* Líneas del check moradas */
+}
+
+.void-icon.swal2-success .swal2-success-ring {
+    border: 4px solid rgba(139, 92, 246, 0.2) !important;
+    /* Anillo suave */
 }
 </style>

@@ -20,10 +20,20 @@ const authController = {
       const result = await authService.loginUser(req.body, currentHwid);
       return reply.code(200).send(result);
     } catch (error) {
-      const statusCode = error.message.includes("HWID") ? 403 : 401;
-
-      return reply.code(statusCode).send({
+      return reply.code(401).send({
         error: "Login Failed",
+        message: error.message,
+      });
+    }
+  },
+
+  refreshToken: async (req, reply) => {
+    try {
+      const result = await authService.refreshToken(req.body);
+      return reply.code(200).send(result);
+    } catch (error) {
+      return reply.code(401).send({
+        error: "Refresh Failed",
         message: error.message,
       });
     }

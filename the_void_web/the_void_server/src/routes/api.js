@@ -8,13 +8,13 @@ const authenticate = require("../middlewares/authMiddleware");
 const api = async (fastify, options) => {
   fastify.post(
     "/command",
-    { schema: commandSchema }, //, onRequest: [authenticate]
+    { schema: commandSchema, onRequest: [authenticate] },
     commandController.processCommand
   );
 
   fastify.post(
     "/command/save-config",
-    { schema: commandSchema }, //, onRequest: [authenticate]
+    { schema: commandSchema, onRequest: [authenticate] },
     commandController.saveConfig
   );
 
@@ -31,10 +31,17 @@ const api = async (fastify, options) => {
     },
     authController.register
   );
+
   fastify.post(
     "/auth/login",
     { schema: authSchema.login },
     authController.login
+  );
+
+  fastify.post(
+    "/auth/refresh-token",
+    { schema: authSchema.refresh_token },
+    authController.refreshToken
   );
 };
 

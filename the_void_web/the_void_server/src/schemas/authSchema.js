@@ -21,3 +21,13 @@ const register = {
     },
   },
 };
+
+const refresh_token = {
+  body: {
+    type: "object",
+    required: ["refresh_token"],
+    properties: {
+      refresh_token: { type: "string" },
+    },
+  },
+};

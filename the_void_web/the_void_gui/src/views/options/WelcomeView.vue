@@ -13,7 +13,7 @@ const products = [
     {
         title: "The Void (AutoClicker)",
         subtitle: "Essential clicking automation",
-        price: "$9.99",
+        price: "$5.99",
         period: "/month",
         features: [
             "Undetected Clicker Logic",
@@ -26,14 +26,14 @@ const products = [
     {
         title: "The Void",
         subtitle: "Complete combat suite",
-        price: "$24.99",
+        price: "$15.00",
         period: "/month",
         features: [
             "Access to All Modules",
-            "AimAssist + Reach + Velocity",
             "Trace Removal Protocol",
             "Priority 24/7 Support",
-            "Early Access to Updates"
+            "Early Access to Updates",
+            "Windows 10/11 Compatible"
         ],
         isPopular: true
     }

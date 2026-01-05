@@ -30,20 +30,4 @@ export class CommandModuleService {
 
     return response;
   }
-
-  public async CommandSaveConfig(
-    config: ICommand
-  ): Promise<IApiResponse<ICommandResponse>> {
-    const params: IApiRequest = {
-      method: "POST",
-      endpoint: "command/save-config",
-      body: config,
-    };
-
-    const response = await CommandModuleService.api.Request<ICommandResponse>(
-      params
-    );
-
-    return response;
-  }
 }

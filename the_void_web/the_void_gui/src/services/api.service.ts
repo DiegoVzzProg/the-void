@@ -1,6 +1,11 @@
-import axios, { AxiosError, type AxiosInstance } from "axios";
+import axios, {
+  AxiosError,
+  type AxiosInstance,
+  type AxiosResponse,
+} from "axios";
 import type { IApiRequest, IApiResponse } from "../interfaces/api.interfaces";
 import { useAuthStorage } from "../stores/auth.store";
+import { AuthService } from "./auth.service";
 export class Api {
   private static instance: Api | null = null;
   private static axios: AxiosInstance;
@@ -44,6 +49,30 @@ export class Api {
       },
       (error) => {
         return Promise.reject(error);
+      }
+    );
+
+    Api.axios.interceptors.response.use(
+      (response: AxiosResponse) => response,
+      async (error: AxiosError) => {
+        const { response } = error;
+        if (!response) return Promise.reject(error);
+
+        const status = response.status;
+        if (status != 401) return Promise.reject(error);
+
+        const tokens = await new AuthService().RefreshToken();
+        const data = tokens.data;
+
+        if (!data) return Promise.reject(error);
+
+        if (!data.accessToken) return Promise.reject(error);
+
+        useAuthStorage().saveToken(
+          "__voidAccessToken",
+          data.accessToken,
+          60 * 15
+        );
       }
     );
   }

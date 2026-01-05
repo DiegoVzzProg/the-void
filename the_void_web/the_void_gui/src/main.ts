@@ -4,9 +4,10 @@ import App from "./App.vue";
 import router from "./router";
 import { plugin, defaultConfig } from "@formkit/vue";
 import config from "./formkit.config";
-// 1. Importar Pinia y el Plugin
 import { createPinia } from "pinia";
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
+
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 const app = createApp(App);
 const pinia = createPinia();
