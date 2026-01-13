@@ -38,6 +38,7 @@ CMinecraft::CMinecraft()
 
 	/*this->JFindClass["guiInventory"] = Java::Env->FindClass("net/minecraft/client/gui/inventory/GuiInventory");*/
 	this->GuiInventoryClass = nullptr;
+
 }
 
 jclass CMinecraft::GetClass()
@@ -157,4 +158,16 @@ void CMinecraft::DebugPrintCurrentScreen() {
 	Java::Env->DeleteLocalRef(classClass);
 	Java::Env->DeleteLocalRef(cls);
 	Java::Env->DeleteLocalRef(currentScreenObj);
+}
+
+std::string GetJNIClassName(jclass cls) {
+	jclass classClass = Java::Env->FindClass("java/lang/Class");
+	jmethodID getNameMid = Java::Env->GetMethodID(classClass, "getName", "()Ljava/lang/String;");
+	jstring nameStr = (jstring)Java::Env->CallObjectMethod(cls, getNameMid);
+	const char* nameChars = Java::Env->GetStringUTFChars(nameStr, nullptr);
+	std::string className(nameChars);
+	Java::Env->ReleaseStringUTFChars(nameStr, nameChars);
+	Java::Env->DeleteLocalRef(nameStr);
+	Java::Env->DeleteLocalRef(classClass);
+	return className;
 }

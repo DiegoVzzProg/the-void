@@ -228,6 +228,15 @@
     <ClInclude Include="src\base\web\web.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\base\moduleManager\modules\combat\firstHit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\base\util\mapper\Mapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\base\util\version\VersionDetector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -390,6 +399,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\base\web\web.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\base\moduleManager\modules\combat\firstHit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\base\util\mapper\Mapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\base\util\version\VersionDetector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

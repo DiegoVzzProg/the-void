@@ -14,6 +14,8 @@
 #include <thread>
 #include <unordered_map>
 #include "web/web.h"
+#include "util/mapper/Mapper.h"
+#include "util/version/VersionDetector.h"
 
 bool IsKeyReleased(int key)
 {
@@ -35,6 +37,18 @@ void Base::Init()
 	Patcher::Init();
 	Menu::Init();
 	ModuleManager::Init();
+
+	std::cout << "[The Void] Analizando entorno JVM..." << std::endl;
+	GameVersions detectedVer = VersionDetector::GetVersion();
+
+	switch (detectedVer) {
+	case CASUAL_1_8: std::cout << ">> Detectado: Vanilla 1.8.9" << std::endl; break;
+	case FORGE_1_8:  std::cout << ">> Detectado: Forge 1.8.9" << std::endl; break;
+	case LUNAR_1_8:  std::cout << ">> Detectado: Lunar Client 1.8.9" << std::endl; break;
+	default:         std::cout << ">> Detectado: Desconocido (Usando Default)" << std::endl; break;
+	}
+
+	Mapper::Initialize(detectedVer);
 
 	Base::Running = true;
 	Web::Init();

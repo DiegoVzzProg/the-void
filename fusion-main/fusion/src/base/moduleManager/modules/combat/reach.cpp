@@ -42,12 +42,6 @@ static bool HitChance(float percentage) {
     return dist(rng) <= percentage;percentage;
 }
 
-static float GetMisplaceJitter(float baseMisplace) {
-    std::uniform_real_distribution<float> jitter(-0.0002f, 0.0002f);
-    // Base (3.0) + Tu ventaja (Delta) + Ruido
-    return 3.0f + baseMisplace + jitter(rng);
-}
-
 void Reach::Update()
 {
     {
@@ -77,7 +71,6 @@ void Reach::Update()
     static float last_sent_val = -1.0f;
     static bool was_active = false;
 
-    // 1. Si está apagado
     if (!Reach::Enabled) {
         if (was_active) {
             Patcher::put(xorstr("reach_distance"), xorstr("3.0"));
@@ -91,37 +84,26 @@ void Reach::Update()
     was_active = true;
 
     float target_reach = 3.0f;
-    // --- 3. LÓGICA DE DECISIÓN ---
-        // Paso A: ¿Tenemos suerte este tick? (Chance)
     if (HitChance(Reach::hitChance))
     {
-        // Paso B: ¿Usamos humanización? (Randomize)
         if (Reach::Randomization) {
             target_reach = GetGaussianReach(Reach::MinReach, Reach::MaxReach);
         }
         else {
-            target_reach = Reach::MaxReach; // Modo Rage estático
+            target_reach = Reach::MaxReach;
         }
     }
     else
     {
-        // Mala suerte: Este golpe será 100% Vanilla (3.0)
-        // Esto es vital para engañar a los AntiCheats que buscan patrones constantes.
         target_reach = 3.0f;
     }
 
-    // --- 4. ENVÍO DE DATOS ---
-    // Solo enviamos si el valor cambió significativamente (ahorra CPU y JNI)
     if (std::abs(target_reach - last_sent_val) > 0.0001f) {
         std::string strVal = float_to_string(target_reach);
         Patcher::put(xorstr("reach_distance"), strVal);
         last_sent_val = target_reach;
-
-        // Debug (opcional, comenta esto para producción)
-        // std::cout << "[Reach] Set: " << strVal << std::endl;
     }
 }
-
 
 void Reach::RenderMenu()
 {

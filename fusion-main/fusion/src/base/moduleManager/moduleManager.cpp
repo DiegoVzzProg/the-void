@@ -6,6 +6,7 @@
 #include "modules/clicker/leftAutoClicker.h"
 #include "modules/clicker/rightAutoClicker.h"
 #include "commonData.h"
+#include "modules/combat/firstHit.h"
 
 void ModuleManager::Init()
 {
@@ -20,9 +21,9 @@ void ModuleManager::UpdateModules()
 
 	AimAssist::Update();
 	Reach::Update();
-
+	FirstHit::Update();
 	LeftAutoClicker::Update();
-	LeftAutoClicker::AutoBlockHit();
+	AutoBlockhit::Update();
 
 	RightAutoClicker::Update();
 }

@@ -6,7 +6,7 @@
 
 struct Esp
 {
-	inline static bool Enabled = true;
+	inline static bool Enabled = false;
 
 	struct Data {
 		std::vector<Vector3> boxVerticies;

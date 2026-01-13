@@ -77,28 +77,22 @@ void Web::Cleanup() {
 }
 
 bool Web::ActivatedCondition(std::string key) {
+    if (Web::module_manager_value.is_null()) {
+        return false;
+    }
+
+    if (!Web::module_manager_value.contains("conditions") 
+        || !Web::module_manager_value["conditions"].is_array()) {
+        return false;
+    }
+
     auto& conditions = Web::module_manager_value["conditions"];
 
-    bool exists = false;
-
-    if (conditions.empty()) {
-        return exists;
-    }
-
-    for (auto& condition : conditions) {
-        std::string condStr = condition.get<std::string>();
-
-        if (condStr == key)
-        {
-            exists = true;
-            break;
-        }
-        else
-        {
-            exists = false;
-            break;
+    for (const auto& condition : conditions) {
+        if (condition.get<std::string>() == key) {
+            return true;
         }
     }
 
-    return exists;
+    return false;
 }

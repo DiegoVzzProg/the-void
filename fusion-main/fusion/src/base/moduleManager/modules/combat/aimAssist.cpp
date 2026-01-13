@@ -44,9 +44,9 @@ void AimAssist::Update()
             AimAssist::smoothMax = settings.value("smoothness", 15.0f);
             AimAssist::smoothMin = (AimAssist::smoothMax > 4) ? AimAssist::smoothMax - 3 : 1.0f;
 
-            AimAssist::clickOnly = Web::ActivatedCondition("click-only");
-            AimAssist::visibilityCheck = Web::ActivatedCondition("visibility-check");
-            AimAssist::strafeAssist = Web::ActivatedCondition("strafe-assist");
+            AimAssist::clickOnly = Web::ActivatedCondition("click_only");
+            AimAssist::visibilityCheck = Web::ActivatedCondition("visibility_check");
+            AimAssist::strafeAssist = Web::ActivatedCondition("strafe_assist");
 
             if (AimAssist::strafeAssist) {
                 AimAssist::strafeOffset = settings["strafe_assist_value"];
