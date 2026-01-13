@@ -1,10 +1,36 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import CardModule from '../../../components/CardModule.vue';
 import SelectOptions, { type SelectOption } from '../../../components/SelectOptions.vue';
 import Slider from '../../../components/Slider.vue';
 import { CommandModuleService } from '../../../services/command-module.service';
 import type { ICommand } from '../../../interfaces/command-module.interface';
+import type { IAimAssist } from '../../../interfaces/modules.interface';
+
+const props = defineProps<{ settings: IAimAssist | null }>();
+
+watch(
+    () => props.settings,
+    (newSettings) => {
+        if (newSettings) {
+            loadConfig();
+        }
+    },
+    { immediate: true }
+);
+
+const loadConfig = () => {
+    const settings = props.settings;
+
+    if (!settings)
+        return;
+
+    aimAssists.value = settings.action === 'enable' ? true : false;
+    aimAssistsRange.value = settings.range;
+    aimAssistsFov.value = settings.fov;
+    aimAssistsSmooth.value = settings.smoothness;
+    aimAssistsConditionsSelected.value = settings.conditions;
+}
 
 const commandModule = async (commandParams: ICommand) => {
     const commandService = new CommandModuleService();
@@ -31,7 +57,6 @@ const aimAssistsRangeText = ref<string>("4.0");
 const aimAssistsSmooth = ref<number>(18);
 
 const aimAssistsConditionsSelected = ref<string[]>([]);
-const aimAssistsOptionsDefault = ref<string[]>([]);
 const aimAssistsValuesBlackList = ref<string[]>([]);
 
 
@@ -42,11 +67,11 @@ const aimAssistsStrafeSlider = ref<number>(40);
 const aimAssistsStrafeText = ref<string>("4.0");
 
 const aimAssistsOptions = ref<SelectOption[]>([
-    { label: "weapon check", value: "weapon-check" },
-    { label: "break blocks", value: "break-blocks" },
-    { label: "click only", value: "click-only" },
-    { label: "visibility check", value: "visibility-check" },
-    { label: "strafe assist", value: "strafe-assist" },
+    { label: "weapon check", value: "weapon_check" },
+    { label: "break blocks", value: "break_blocks" },
+    { label: "click only", value: "click_only" },
+    { label: "visibility check", value: "visibility_check" },
+    { label: "strafe assist", value: "strafe_assist" },
 
 ]);
 
@@ -106,7 +131,8 @@ const activeAimAssistsModule = async () => {
 </script>
 
 <template>
-    <CardModule module-text="aim assist" icon="Handshake" v-on:module-active="onActiveAimAssists">
+    <CardModule module-text="aim assist" icon="Handshake" :active-module="aimAssists"
+        v-on:module-active="onActiveAimAssists">
         <div class="space-y-5">
             <div>
                 <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
@@ -138,7 +164,7 @@ const activeAimAssistsModule = async () => {
                 <Slider :min="0" :max="50" v-model="aimAssistsStrafeSlider"
                     v-on:update:model-value="onUpdateAimAssistsStrafe" v-on:change="onChangeAimAssists" />
             </div>
-            <SelectOptions v-model="aimAssistsOptionsDefault" :options="aimAssistsOptions"
+            <SelectOptions v-model="aimAssistsConditionsSelected" :options="aimAssistsOptions"
                 :value-black-list="aimAssistsValuesBlackList" v-on:change="onChangeAimAssitsConditions" />
         </div>
     </CardModule>

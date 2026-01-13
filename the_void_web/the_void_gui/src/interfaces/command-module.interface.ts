@@ -21,3 +21,10 @@ export interface ICommand {
 export interface ICommandResponse {
   status: string;
 }
+
+export interface ILoadConfigResponse {
+  module: string;
+  action: "enable" | "disable";
+  settings: Record<string, any>;
+  conditions: string[];
+}

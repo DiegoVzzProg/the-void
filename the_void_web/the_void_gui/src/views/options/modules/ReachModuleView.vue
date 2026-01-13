@@ -1,11 +1,35 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import CardModule from '../../../components/CardModule.vue';
 import SelectOptions, { type SelectOption } from '../../../components/SelectOptions.vue';
 import Slider from '../../../components/Slider.vue';
 import type { ICommand } from '../../../interfaces/command-module.interface';
 import { CommandModuleService } from '../../../services/command-module.service';
+import type { IReach } from '../../../interfaces/modules.interface';
 
+const props = defineProps<{ settings: IReach | null }>();
+
+watch(
+    () => props.settings,
+    (newSettings) => {
+        if (newSettings) {
+            loadConfig();
+        }
+    },
+    { immediate: true }
+);
+
+const loadConfig = () => {
+    const settings = props.settings;
+
+    if (!settings)
+        return;
+
+    reach.value = settings.action === 'enable' ? true : false;
+    reachRange.value = settings.range;
+    reachHitChance.value = settings.hitchance;
+    reachConditionsSelected.value = settings.conditions;
+}
 
 const commandModule = async (commandParams: ICommand) => {
     const commandService = new CommandModuleService();
@@ -33,9 +57,9 @@ const reachValuesBlackList = ref<string[]>([]);
 
 const reachOptions = ref<SelectOption[]>([
     { label: "randomization", value: "randomization" },
-    { label: "sprint only", value: "sprint-only" },
+    { label: "sprint only", value: "sprint_only" },
     { label: "hitboxes", value: "hitboxes" },
-    { label: "visible only", value: "visible-only" }
+    { label: "visible only", value: "visible_only" }
 
 ]);
 
@@ -92,7 +116,7 @@ const onChangeConditionsReachRange = async (conditions: string[]) => {
 
 <template>
 
-    <CardModule module-text="reach" icon="Axe" v-on:module-active="onActiveReach"
+    <CardModule module-text="reach" icon="Axe" :active-module="reach" v-on:module-active="onActiveReach"
         module-info="Prioritize safety over raw advantage. This module varies your attack distance randomly on each hit using a human probability curve. Objective: Mimic natural imperfection to evade long-term bans on primary accounts.">
         <div class="space-y-5">
             <div>

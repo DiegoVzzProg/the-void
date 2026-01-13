@@ -2,6 +2,7 @@ import type { IApiRequest, IApiResponse } from "../interfaces/api.interfaces";
 import type {
   ICommand,
   ICommandResponse,
+  ILoadConfigResponse,
 } from "../interfaces/command-module.interface";
 import { Api } from "./api.service";
 
@@ -27,6 +28,19 @@ export class CommandModuleService {
     const response = await CommandModuleService.api.Request<ICommandResponse>(
       params
     );
+
+    return response;
+  }
+
+  public async loadConfig(): Promise<IApiResponse<ILoadConfigResponse[]>> {
+    const params: IApiRequest = {
+      method: "GET",
+      endpoint: "command/load-config",
+    };
+
+    const response = await CommandModuleService.api.Request<
+      ILoadConfigResponse[]
+    >(params);
 
     return response;
   }

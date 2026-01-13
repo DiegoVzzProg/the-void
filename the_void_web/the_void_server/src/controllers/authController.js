@@ -20,7 +20,7 @@ const authController = {
       const result = await authService.loginUser(req.body, currentHwid);
       return reply.code(200).send(result);
     } catch (error) {
-      return reply.code(401).send({
+      return reply.code(400).send({
         error: "Login Failed",
         message: error.message,
       });
@@ -32,7 +32,7 @@ const authController = {
       const result = await authService.refreshToken(req.body);
       return reply.code(200).send(result);
     } catch (error) {
-      return reply.code(401).send({
+      return reply.code(400).send({
         error: "Refresh Failed",
         message: error.message,
       });

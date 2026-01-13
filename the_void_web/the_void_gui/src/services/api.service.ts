@@ -51,28 +51,58 @@ export class Api {
         return Promise.reject(error);
       }
     );
-
     Api.axios.interceptors.response.use(
       (response: AxiosResponse) => response,
       async (error: AxiosError) => {
+        const originalRequest = error.config; // 1. Guardamos la configuración de la petición fallida
         const { response } = error;
+
+        // Si no hay respuesta o error de red, rechazamos
         if (!response) return Promise.reject(error);
 
-        const status = response.status;
-        if (status != 401) return Promise.reject(error);
+        // 2. Verificamos si es 401 y si NO es un reintento (para evitar bucles infinitos)
+        if (
+          response.status === 401 &&
+          originalRequest &&
+          !(originalRequest as any)._retry
+        ) {
+          // Marcamos esta petición como "ya reintentada"
+          (originalRequest as any)._retry = true;
 
-        const tokens = await new AuthService().RefreshToken();
-        const data = tokens.data;
+          try {
+            // Intentamos refrescar el token
+            const tokens = await new AuthService().RefreshToken();
+            const data = tokens.data;
 
-        if (!data) return Promise.reject(error);
+            if (!data || !data.accessToken) {
+              // Si el refresh falla, es buena práctica desloguear al usuario aquí
+              // useAuthStorage().clear();
+              // window.location.href = '/login';
+              return Promise.reject(error);
+            }
 
-        if (!data.accessToken) return Promise.reject(error);
+            // Guardamos el nuevo token
+            useAuthStorage().saveToken(
+              "__voidAccessToken",
+              data.accessToken,
+              60 * 15
+            );
 
-        useAuthStorage().saveToken(
-          "__voidAccessToken",
-          data.accessToken,
-          60 * 15
-        );
+            // 3. ACTUALIZAMOS EL HEADER de la petición original con el nuevo token
+            originalRequest.headers[
+              "Authorization"
+            ] = `Bearer ${data.accessToken}`;
+
+            // 4. EJECUTAMOS DE NUEVO la petición original
+            // Esto devuelve una nueva promesa que resuelve la petición original
+            return Api.axios(originalRequest);
+          } catch (refreshError) {
+            // Si el refresh falla (ej: refresh token expirado), rechazamos el error original o redirigimos a login
+            return Promise.reject(refreshError);
+          }
+        }
+
+        return Promise.reject(error);
       }
     );
   }

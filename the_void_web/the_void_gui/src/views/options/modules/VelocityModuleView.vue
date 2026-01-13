@@ -33,7 +33,7 @@ const velocityOptionsDefault = ref<string[]>([]);
 const velocityValuesBlackList = ref<string[]>([]);
 
 const velocityOptions = ref<SelectOption[]>([
-    { label: "w-tap only", value: "w-tap-only" },
+    { label: "w-tap only", value: "w_tap_only" },
     { label: "targeting", value: "targeting" }
 ]);
 
@@ -72,7 +72,8 @@ const velocityModule = async () => {
 </script>
 
 <template>
-    <CardModule module-text="velocity" icon="UnfoldHorizontal" v-on:module-active="onActiveVelocity">
+    <CardModule module-text="velocity" icon="UnfoldHorizontal" :active-module="velocity"
+        v-on:module-active="onActiveVelocity">
         <div class="space-y-5">
             <div>
                 <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">

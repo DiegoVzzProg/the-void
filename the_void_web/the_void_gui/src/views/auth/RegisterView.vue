@@ -39,6 +39,9 @@ const handleRegister = async (formData: any) => {
         useAuthStorage().deactivateOption("yes");
 
         useUserStorage().set(data.user.username, data.user.email);
+
+        const site = new Utils();
+        site.RedirectPage("information");
     }
     catch (error: any) {
         console.error(error);

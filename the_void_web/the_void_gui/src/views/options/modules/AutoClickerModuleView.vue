@@ -1,11 +1,35 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { CommandModuleService } from '../../../services/command-module.service';
 import type { ICommand } from '../../../interfaces/command-module.interface';
 import type { SelectOption } from '../../../components/SelectOptions.vue';
 import CardModule from '../../../components/CardModule.vue';
 import Slider from '../../../components/Slider.vue';
 import SelectOptions from '../../../components/SelectOptions.vue';
+import type { IAutoClicker } from '../../../interfaces/modules.interface';
+
+const props = defineProps<{ settings: IAutoClicker | null }>();
+
+watch(
+    () => props.settings,
+    (newSettings) => {
+        if (newSettings) {
+            loadConfig();
+        }
+    },
+    { immediate: true }
+);
+
+const loadConfig = () => {
+    const settings = props.settings;
+    console.log(settings)
+    if (!settings)
+        return;
+
+    autoClicker.value = settings.action === 'enable' ? true : false;
+    autoClickerValue.value = settings.cps;
+    autoClickerConditions.value = settings.conditions;
+}
 
 const commandModule = async (commandParams: ICommand) => {
     const commandService = new CommandModuleService();
@@ -28,15 +52,14 @@ const autoClickerConditions = ref<string[]>([]);
 const autoClickerSliderMin = ref<number>(5);
 const autoClickerSliderMax = ref<number>(24);
 
-const autoClickerOptionsDefault = ref<string[]>([]);
 const autoClickerValuesBlackList = ref<string[]>([]);
 
 const autoClickerOptions = ref<SelectOption[]>([
     { label: "blatan", value: "blatan" },
     { label: "inventory", value: "inventory" },
-    { label: "auto block hit", value: "auto-block-hit" },
-    { label: "weapon check", value: "weapon-check" },
-    { label: "ignore blocks", value: "ignore-blocks" }
+    { label: "auto block hit", value: "auto_block_hit" },
+    { label: "weapon check", value: "weapon_check" },
+    { label: "ignore blocks", value: "ignore_blocks" }
 
 ]);
 
@@ -51,7 +74,7 @@ const onChangeAutoClickerValue = async () => {
     await autoClickerModule();
 }
 
-const onChangeAutoClickerConditions = async (values: string[], valuesOptionsWhiteList: string[]) => {
+const onChangeAutoClickerConditions = async (values: string[]) => {
     if (!autoClicker.value) return;
 
     if (values.includes("blatan")) {
@@ -61,7 +84,6 @@ const onChangeAutoClickerConditions = async (values: string[], valuesOptionsWhit
         autoClickerValue.value = 12;
     }
 
-    autoClickerConditions.value = valuesOptionsWhiteList;
     await autoClickerModule();
 }
 
@@ -81,7 +103,8 @@ const autoClickerModule = async () => {
 </script>
 
 <template>
-    <CardModule module-text="auto clicker" icon="Mouse" v-on:module-active="onActiveAutoClicker">
+    <CardModule module-text="auto clicker" icon="Mouse" :active-module="autoClicker"
+        v-on:module-active="onActiveAutoClicker">
         <div class="space-y-6">
             <div>
                 <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
@@ -91,7 +114,7 @@ const autoClickerModule = async () => {
                 <Slider :min="autoClickerSliderMin" :max="autoClickerSliderMax" v-model="autoClickerValue"
                     v-on:change="onChangeAutoClickerValue" />
             </div>
-            <SelectOptions :model-value="autoClickerOptionsDefault" :options="autoClickerOptions"
+            <SelectOptions v-model="autoClickerConditions" :options="autoClickerOptions"
                 :value-black-list="autoClickerValuesBlackList" v-on:change="onChangeAutoClickerConditions" />
         </div>
     </CardModule>

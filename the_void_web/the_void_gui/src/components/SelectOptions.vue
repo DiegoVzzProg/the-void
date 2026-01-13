@@ -28,6 +28,7 @@ const selectedValuesInBlackList = ref<(string)[]>([...props.modelValue]);
 
 watch(() => props.modelValue, (newValue) => {
     selectedValues.value = [...(newValue || [])];
+    console.log(newValue)
 }, { deep: true });
 
 const selectedLabels = computed(() => {

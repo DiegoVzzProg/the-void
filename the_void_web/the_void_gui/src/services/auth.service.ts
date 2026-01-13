@@ -49,7 +49,7 @@ export class AuthService {
 
     const params: IApiRequest = {
       method: "POST",
-      endpoint: `${this.prefix}/login`,
+      endpoint: `${this.prefix}/refresh-token`,
       body: {
         refresh_token: refreshToken,
       },

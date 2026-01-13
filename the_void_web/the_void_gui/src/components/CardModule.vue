@@ -3,14 +3,14 @@ import Swal from 'sweetalert2'
 
 import { Axe, CircleQuestionMark, HandFist, Handshake, Mouse, UnfoldHorizontal } from 'lucide-vue-next';
 import ToogleSwitch from './ToogleSwitch.vue';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 // ... (Tu lógica de iconos se mantiene igual) ...
 type IconName = keyof typeof iconMap;
 const iconMap = { Mouse, Axe, Handshake, UnfoldHorizontal, HandFist };
 
 const emits = defineEmits<{ (e: 'moduleActive', value: boolean): void; }>();
-const props = defineProps<{ moduleText: string, icon: string, moduleInfo?: string }>();
+const props = defineProps<{ moduleText: string, icon: string, moduleInfo?: string, activeModule: boolean }>();
 
 const getIcon = (name: string) => iconMap[name as IconName] || null;
 
@@ -19,6 +19,16 @@ const checkedModule = ref<boolean>(false);
 const onModuleActive = () => {
     emits("moduleActive", checkedModule.value);
 }
+
+watch(
+    () => props.activeModule,
+    (value) => {
+        checkedModule.value = value;
+        if (value)
+            emits("moduleActive", checkedModule.value);
+    },
+    { immediate: true }
+);
 
 const ToolTip = () => {
     if (!props.moduleInfo) return;
@@ -63,9 +73,9 @@ const ToolTip = () => {
                     :class="checkedModule ? 'text-white drop-shadow-sm' : 'text-zinc-400'">
                     {{ props.moduleText }}
                 </span>
-                <button v-if="props.moduleInfo" v-on:click="ToolTip"
-                    :class="checkedModule ? 'bg-[#6366f1] border-[#6366f1] text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]' : ' border-white/10 text-zinc-500'">
-                    <CircleQuestionMark class="size-4" />
+                <button v-if="props.moduleInfo" v-on:click="ToolTip">
+                    <CircleQuestionMark class="size-4"
+                        :class="checkedModule ? 'stroke-[#6366f1] shadow-[0_0_15px_rgba(99,102,241,0.5)] rounded-full' : 'stroke-zinc-500'" />
                 </button>
             </div>
 

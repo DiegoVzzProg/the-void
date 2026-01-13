@@ -6,9 +6,6 @@ const CommandController = {
   processCommand: async (req, reply) => {
     try {
       const command = req.body;
-
-      // 1. Extraemos el usuario ANTES de llamar al servicio
-      // Esto es necesario para obtener el 'id' que pide Prisma
       const authHeader = req.headers.authorization;
       if (!authHeader) {
         throw new Error("No authorization header provided");
@@ -20,8 +17,6 @@ const CommandController = {
       const sent = sendCommandToClient(command);
 
       if (sent) {
-        // 2. CORRECCIÓN AQUÍ:
-        // Pasamos 'command' (que es req.body) y el 'userId'
         await commandService.saveConfig(command, userId);
 
         return { status: "Connected" };
@@ -38,19 +33,21 @@ const CommandController = {
     }
   },
 
-  saveConfig: async (req, reply) => {
+  loadConfig: async (req, reply) => {
     try {
+      const command = req.body;
       const authHeader = req.headers.authorization;
-      const token = authHeader.replace("Bearer ", "");
-      const decoded = TokenManager.verifyAccessToken(token);
 
-      await commandService.saveConfig(req.body, decoded.id);
-      return reply.code(200).send({
-        status: "Connected",
-      });
+      if (!authHeader) {
+        throw new Error("No authorization header provided");
+      }
+      const data = commandService.loadConfig(authHeader);
+
+      return data;
     } catch (error) {
+      console.error(error); // Es bueno loguear el error para verlo en consola
       return reply.code(400).send({
-        error: "the configuration was not saved",
+        error: "command failed",
         message: error.message,
       });
     }

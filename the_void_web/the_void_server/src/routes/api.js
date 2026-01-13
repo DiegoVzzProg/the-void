@@ -12,10 +12,10 @@ const api = async (fastify, options) => {
     commandController.processCommand
   );
 
-  fastify.post(
-    "/command/save-config",
-    { schema: commandSchema, onRequest: [authenticate] },
-    commandController.saveConfig
+  fastify.get(
+    "/command/load-config",
+    { onRequest: [authenticate] },
+    commandController.loadConfig
   );
 
   fastify.post(
@@ -34,13 +34,29 @@ const api = async (fastify, options) => {
 
   fastify.post(
     "/auth/login",
-    { schema: authSchema.login },
+    {
+      schema: authSchema.login,
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: "1 hour",
+        },
+      },
+    },
     authController.login
   );
 
   fastify.post(
     "/auth/refresh-token",
-    { schema: authSchema.refresh_token },
+    {
+      schema: authSchema.refresh_token,
+      config: {
+        rateLimit: {
+          max: 3,
+          timeWindow: "1 hour",
+        },
+      },
+    },
     authController.refreshToken
   );
 };

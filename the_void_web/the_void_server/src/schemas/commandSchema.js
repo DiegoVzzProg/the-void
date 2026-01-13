@@ -16,7 +16,7 @@ const commandSchema = {
           cps: { type: "number", minimum: 1, maximum: 100 },
 
           // Propiedades de Reach / AimAssist
-          range: { type: "number", minimum: 3.0, maximum: 8.0 },
+          range: { type: "number", minimum: 0.0, maximum: 8.0 },
           hitchance: { type: "number", minimum: 0, maximum: 100 },
 
           fov: { type: "number", minimum: 0, maximum: 360 },
