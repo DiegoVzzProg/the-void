@@ -8,99 +8,159 @@ namespace TheVoid {
 	namespace SDK {
 		class Minecraft {
 		private:
-			jobject instance; // objetivo 'Minecraft' real en la memoria.
+			jobject instance;
+
+			jobject GetFieldObject(std::string classKey) {
+				if (!instance || !Java::env) return nullptr;
+
+				if (Java::Mapper::fields.find(classKey)
+					== Java::Mapper::fields.end())
+				{
+					return nullptr;
+				}
+
+				jclass mcClass = Java::env->GetObjectClass(instance);
+
+				const char* fieldName = Java::Mapper::fields[classKey].c_str();
+				const char* fieldSig = Java::Mapper::fieldSigs[classKey].c_str();
+
+				// 3. OBTENER EL FIELD ID
+				jfieldID fid = Java::env->GetFieldID(mcClass, fieldName, fieldSig);
+
+				if (!fid) {
+					Java::env->ExceptionClear(); // Limpiamos error si falla
+					Java::env->DeleteLocalRef(mcClass);
+					return nullptr;
+				}
+
+				// 4. OBTENER EL OBJETO (Puede ser NULL si estás jugando sin menús)
+				jobject screenObj = Java::env->GetObjectField(instance, fid);
+
+				Java::env->DeleteLocalRef(mcClass); // Limpieza
+				return screenObj;
+			}
+
+			jobject GetCurrentScreen() {
+				return GetFieldObject(xorstr("Minecraft_currentScreen"));
+			}
+
 		public:
 			jobject GetInstance() const { return instance; }
 
 			Minecraft(jobject obj) : instance(obj) {}
 
 			static Minecraft GetMinecraft() {
-				// 1. Buscamos la clase (ej. "ave" o "net.minecraft.client.Minecraft")
-				jclass mcClass = Java::env->FindClass(Java::Mapper::classes[xorstr("Minecraft")].c_str());
-				if (!mcClass) return Minecraft(nullptr);
+				// 0. Seguridad básica
+				if (!Java::env) return Minecraft(nullptr);
 
-				// 2. Buscamos el m�todo est�tico que devuelve la instancia (a veces es un campo est�tico)
-				// En 1.8.9 Vanilla suele ser el m�todo est�tico "A" o "getMinecraft"
-				// NOTA: Para este ejemplo usaremos la t�cnica de "Field Est�tico" si existe, o m�todo.
-				// Ajustaremos esto seg�n tu versi�n exacta, pero la l�gica general es esta:
-				jmethodID getMcMethod = Java::env->GetStaticMethodID(mcClass, xorstr("A"), xorstr("()Lave;"));
-				// �OJO! La firma "()Lave;" tambi�n debe ser din�mica en el futuro. 
-				// Por ahora, asumiremos Vanilla 1.8.9 est�ndar para probar.
+				if (Java::Mapper::classes.find(xorstr("Minecraft")) == Java::Mapper::classes.end()) {
+					return Minecraft(nullptr);
+				}
+				std::string className = Java::Mapper::classes[xorstr("Minecraft")];
 
-				if (!getMcMethod) return Minecraft(nullptr);
+				jclass mcClass = Java::env->FindClass(className.c_str());
+				if (!mcClass) {
+					Java::env->ExceptionClear();
+					return Minecraft(nullptr);
+				}
 
-				jobject mcObj = Java::env->CallStaticObjectMethod(mcClass, getMcMethod);
+				std::string dynamicSig = "()L" + className + ";";
+
+				// 3. BUSCAR EL MÉTODO ESTÁTICO (Entry Point)
+				// Aquí probamos las dos variantes más comunes manualmente porque es el inicio de todo.
+
+				// Intento A: Vanilla ("A")
+				jmethodID mid = Java::env->GetStaticMethodID(mcClass, xorstr("A"), dynamicSig.c_str());
+
+				// Intento B: Forge ("getMinecraft")
+				if (!mid) {
+					Java::env->ExceptionClear();
+					mid = Java::env->GetStaticMethodID(mcClass, xorstr("getMinecraft"), dynamicSig.c_str());
+				}
+
+				if (!mid) {
+					Java::env->ExceptionClear();
+					Java::env->DeleteLocalRef(mcClass);
+					return Minecraft(nullptr);
+				}
+
+				jobject mcObj = Java::env->CallStaticObjectMethod(mcClass, mid);
+				Java::env->DeleteLocalRef(mcClass);
+
 				return Minecraft(mcObj);
 			}
 
 			CEntity GetThePlayer() {
-				if (!instance) return CEntity(nullptr);
-
-				// Verificamos si el Mapper encontró una firma válida
-				if (Java::Mapper::fieldSigs.find(xorstr("Minecraft_thePlayer")) == Java::Mapper::fieldSigs.end()) {
-					return CEntity(nullptr); // Si no hay firma, abortamos seguramente.
-				}
-
-				jclass mcClass = Java::env->GetObjectClass(instance);
-
-				// Usamos la firma y el nombre que el Mapper ya validó
-				jfieldID fid = Java::env->GetFieldID(mcClass,
-					Java::Mapper::fields[xorstr("Minecraft_thePlayer")].c_str(),
-					Java::Mapper::fieldSigs[xorstr("Minecraft_thePlayer")].c_str() // <--- USO SEGURO
-				);
-
-				if (!fid) {
-					Java::env->ExceptionClear(); // Por si acaso
-					return CEntity(nullptr);
-				}
-
-				jobject playerObj = Java::env->GetObjectField(instance, fid);
-				return CEntity(playerObj);
+				return CEntity(GetFieldObject(xorstr("Minecraft_thePlayer")));
 			}
 
 			void ClickMouse() {
-				if (!instance) return;
-				jclass mcClass = Java::env->GetObjectClass(instance);
+				if (!IsValid()) return;
 
-				const char* methodName = Java::Mapper::methods[xorstr("clickMouse")].c_str();
-				const char* methodSig = xorstr("()V");
-
-				jmethodID mid = Java::env->GetMethodID(mcClass, methodName, methodSig);
-
-				if (!mid) {
-					std::cout << "[ERROR] Fallo clickMouse. No existe el metodo: '"
-						<< methodName << "' con firma '" << methodSig << "'" << std::endl;
+				// 2. SEGURIDAD: Verificar si el Mapper encontró el nombre del método
+								// Si no existe en el mapa, salimos silenciosamente (evita Crash)
+				if (Java::Mapper::methods.find(xorstr("clickMouse")) == Java::Mapper::methods.end()) {
 					return;
 				}
 
+				jclass mcClass = Java::env->GetObjectClass(instance);
+
+				// 3. OBTENER EL NOMBRE DEL MÉTODO DESDE EL MAPPER
+				// Aquí es donde la magia ocurre: usará "aw", "av", o "clickMouse" según lo que encontró
+				const char* methodName = Java::Mapper::methods[xorstr("clickMouse")].c_str();
+
+				// La firma de clickMouse casi siempre es "()V" (Void, sin argumentos)
+				// Si quisieras ser ultra-preciso, podrías guardarla en un mapa 'methodSigs', 
+				// pero "()V" es estándar en todas las versiones 1.8.x.
+				const char* methodSig = xorstr("()V");
+
+				// 4. OBTENER EL ID DEL MÉTODO
+				jmethodID mid = Java::env->GetMethodID(mcClass, methodName, methodSig);
+
+				if (!mid) {
+					// Si falla, limpiamos el error de JNI para que el juego no se cierre
+					Java::env->ExceptionClear();
+					Java::env->DeleteLocalRef(mcClass);
+					return;
+				}
+
+				// 5. EJECUTAR EL CLICK (GOLPE)
+				// CallVoidMethod porque la firma retorna Void (V)
 				Java::env->CallVoidMethod(instance, mid);
+
+				// 6. LIMPIEZA
+				Java::env->DeleteLocalRef(mcClass);
 			}
 
 			bool InGui() {
-				if (!instance) return true;
+				jobject currentScreen = GetCurrentScreen();
 
-				jclass mcClass = Java::env->GetObjectClass(instance);
-
-				const char* fieldName = Java::Mapper::fields[xorstr("Minecraft_currentScreen")].c_str();
-				const char* fieldSig = xorstr("Laxu;"); // Firma de GuiScreen
-
-				jfieldID fid = Java::env->GetFieldID(mcClass, fieldName, fieldSig);
-
-				if (!fid) {
-					// Solo imprimimos el error una vez para no spamear
-					static bool logged = false;
-					if (!logged) {
-						std::cout << "[ERROR] Fallo InGui. No existe el campo: '"
-							<< fieldName << "' con firma '" << fieldSig << "'" << std::endl;
-						logged = true;
-					}
+				if (!currentScreen)
 					return false;
-				}
+				else
+					return true;
+			}
 
-				jobject screenObj = Java::env->GetObjectField(instance, fid);
-				bool inGui = (screenObj != nullptr);
-				if (screenObj) Java::env->DeleteLocalRef(screenObj);
-				return inGui;
+			bool IsInInventory() {
+				jobject currentScreen = GetCurrentScreen();
+				if (!currentScreen) return false;
+
+				bool esInventario = Java::Mapper::LearnAndCheck(currentScreen, "INVENTORY",
+					{
+					  "GuiInventory",  // Forge / Desofuscado
+					  "GuiContainer",  // Forge (Cofres)
+					  "adl",           // Vanilla 1.8.9 (Inventario)
+					  "ayl",           // Vanilla 1.8.9 (Cofre)
+					  "Inventory",     // Lunar/Badlion (A veces)
+					  "wm",
+					  "InventoryPlayer",
+					  "field_71071_by",
+					}
+				);
+
+				Java::env->DeleteLocalRef(currentScreen);
+
+				return esInventario;
 			}
 
 			bool IsLookingAtBlock() {
