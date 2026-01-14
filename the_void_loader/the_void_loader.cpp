@@ -5,7 +5,7 @@
 #include <string>
 
 const std::wstring TARGET_PROCESS = L"javaw.exe";
-const std::string DLL_NAME = "the_void_internal.dll";
+const std::string DLL_NAME = "the_void_client/the_void_client.dll";//"the_void_internal.dll";
 
 DWORD GetProcessIdByName(const std::wstring& processName) {
     DWORD pid = 0;
