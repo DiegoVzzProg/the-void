@@ -104,35 +104,31 @@ namespace TheVoid {
 			}
 
 			bool IsLookingAtBlock() {
-				if (!instance) return false;
-				jclass mcClass = Java::env->GetObjectClass(instance);
+				jobject mop = GetFieldObject(xorstr("Minecraft_objectMouseOver"));
+				if (!mop) return false;
 
-				// Check 1: objectMouseOver
-				const char* fieldName = Java::Mapper::fields[xorstr("Minecraft_objectMouseOver")].c_str();
-				jfieldID fidMouseOver = Java::env->GetFieldID(mcClass, fieldName, xorstr("Lauu;"));
-
-				if (!fidMouseOver) {
-					static bool logged = false;
-					if (!logged) {
-						std::cout << "[ERROR] Fallo SmartMining. No existe campo objectMouseOver: '" << fieldName << "'" << std::endl;
-						logged = true;
-					}
+				if (Java::Mapper::fields.find(xorstr("MOP_typeOfHit")) == Java::Mapper::fields.end()) {
+					Java::env->DeleteLocalRef(mop);
 					return false;
 				}
-
-				// (Mantén el resto de tu lógica original aquí abajo si pasa el check)
-				jobject mop = Java::env->GetObjectField(instance, fidMouseOver);
-				if (!mop) return false;
 
 				// 2. Obtener typeOfHit (campo 'a' que es un Enum MovingObjectType)
 				jclass mopClass = Java::env->GetObjectClass(mop);
 				jfieldID fidType = Java::env->GetFieldID(
 					mopClass,
 					Java::Mapper::fields[xorstr("MOP_typeOfHit")].c_str(),
-					xorstr("Lauu$a;") // Firma del Enum interno
+					Java::Mapper::fieldSigs[xorstr("MOP_typeOfHit")].c_str()
 				);
 
+				if (!fidType) {
+					Java::env->ExceptionClear();
+					Java::env->DeleteLocalRef(mopClass);
+					Java::env->DeleteLocalRef(mop);
+					return false;
+				}
+
 				jobject enumObj = Java::env->GetObjectField(mop, fidType);
+				Java::env->DeleteLocalRef(mopClass);
 				if (!enumObj) {
 					Java::env->DeleteLocalRef(mop);
 					return false;
@@ -147,7 +143,6 @@ namespace TheVoid {
 				// Limpieza de memoria (CRÍTICO)
 				Java::env->DeleteLocalRef(enumClass);
 				Java::env->DeleteLocalRef(enumObj);
-				Java::env->DeleteLocalRef(mopClass);
 				Java::env->DeleteLocalRef(mop);
 
 				// Si el ordinal es 1, es un BLOQUE
