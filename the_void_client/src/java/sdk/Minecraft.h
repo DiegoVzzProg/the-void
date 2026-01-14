@@ -155,21 +155,35 @@ namespace TheVoid {
 			}
 
 			void SetLeftClickCounter(int val) {
-				if (!instance) return;
-				jclass mcClass = Java::env->GetObjectClass(instance);
+				if (!IsValid()) return;
 
-				// Buscamos 'leftClickCounter' (g)
-				jfieldID fid = Java::env->GetFieldID(mcClass,
+				jclass mcClass = Java::env->GetObjectClass(instance);
+				
+				static bool messageLeftCount = false;
+
+				if (Java::Mapper::fields.find(xorstr("Minecraft_leftClickCounter")) 
+					== Java::Mapper::fields.end()) {
+					if (!messageLeftCount) {
+						messageLeftCount = true;
+						std::cout << "[DEBUG] Fallo al encontrar leftClickCounter" << std::endl;
+					}
+					return;
+				}
+
+				jfieldID fid = Java::env->GetFieldID(
+					mcClass,
 					Java::Mapper::fields[xorstr("Minecraft_leftClickCounter")].c_str(),
-					xorstr("I") // Firma: Entero (int)
+					Java::Mapper::fieldSigs[xorstr("Minecraft_leftClickCounter")].c_str()
 				);
 
 				if (fid) {
 					Java::env->SetIntField(instance, fid, val);
 				}
 				else {
-					// Debug silencioso para saber si la letra 'g' falló
-					std::cout << "[DEBUG] Fallo al encontrar leftClickCounter" << std::endl;
+					if (!messageLeftCount) {
+						messageLeftCount = true;
+						std::cout << "[DEBUG] Fallo al encontrar leftClickCounter: pero variable -> fid es null" << std::endl;
+					}
 				}
 			}
 
