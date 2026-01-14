@@ -66,6 +66,9 @@
     <ClInclude Include="src\modules\modules.h">
       <Filter>Archivos de encabezado</Filter>
     </ClInclude>
+    <ClInclude Include="src\utils\JavaUtils.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main\dllmain.cpp">
@@ -75,9 +78,6 @@
       <Filter>Archivos de origen</Filter>
     </ClCompile>
     <ClCompile Include="src\main\main.cpp">
-      <Filter>Archivos de origen</Filter>
-    </ClCompile>
-    <ClCompile Include="src\modules\clicker\leftClicker.cpp">
       <Filter>Archivos de origen</Filter>
     </ClCompile>
   </ItemGroup>

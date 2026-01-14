@@ -6,10 +6,48 @@ namespace TheVoid {
         std::unordered_map<std::string, std::string> Mapper::methods;
         std::unordered_map<std::string, std::string> Mapper::fields;
         std::unordered_map<std::string, std::string> Mapper::fieldSigs;
+        std::unordered_map<std::string, jclass> Mapper::classCache;
+
+        // ==========================================================
+                // LÓGICA DE APRENDIZAJE DINÁMICO (CERO LAG)
+                // ==========================================================
+        bool Mapper::LearnAndCheck(jobject obj, std::string cacheKey, std::vector<std::string> searchPatterns) {
+            if (!obj) return false;
+
+            // 1. CACHE HIT (Ruta Rápida)
+            // Si ya aprendimos qué es esto, usamos IsInstanceOf (Nativo y veloz)
+            if (classCache.find(cacheKey) != classCache.end()) {
+                return Utils::IsInstanceOf(obj, classCache[cacheKey]);
+            }
+
+            // 2. CACHE MISS (Ruta de Aprendizaje - Solo ocurre 1 vez por tipo de pantalla)
+            // Obtenemos el nombre real usando Reflexión
+            std::string realName = Utils::GetClassName(obj);
+            if (realName.empty()) return false;
+
+            // Buscamos si el nombre coincide con algún patrón
+            for (const auto& pattern : searchPatterns) {
+                // .find() para Forge/Lunar (nombres largos), == para Vanilla (nombres cortos)
+                if (realName.find(pattern) != std::string::npos || realName == pattern) {
+
+                    std::cout << "[MAPPER] Aprendido: " << cacheKey << " (" << pattern << ") detectado como -> " << realName << std::endl;
+
+                    // IMPORTANTE: Convertir a GlobalRef para que no se borre
+                    jclass localCls = env->GetObjectClass(obj);
+                    jclass globalCls = (jclass)env->NewGlobalRef(localCls);
+
+                    // Guardar en Caché
+                    classCache[cacheKey] = globalCls;
+
+                    env->DeleteLocalRef(localCls);
+                    return true;
+                }
+            }
+            return false;
+        }
 
         void Mapper::ResolveClass(std::string internalName, std::vector<std::string> candidates) {
             std::cout << "[DEBUG] Buscando Clase: " << internalName << "..." << std::endl;
-
             for (const auto& name : candidates) {
                 jclass cls = env->FindClass(name.c_str());
                 if (cls) {
@@ -21,7 +59,6 @@ namespace TheVoid {
                 env->ExceptionClear();
             }
             std::cout << "   [FALLO FATAL] No se encontro la clase: " << internalName << std::endl;
-            // NO guardamos nada en el mapa si falla.
         }
 
         void Mapper::ResolveField(std::string classKey, std::string fieldKey, std::vector<std::string> candidates, std::vector<std::string> sigCandidates) {
@@ -76,26 +113,31 @@ namespace TheVoid {
         }
 
         void Mapper::Init() {
-            std::cout << "[MAPPER] Iniciando escaneo de memoria..." << std::endl;
+            std::cout << "[MAPPER] Inicializando Mapeo Estatico..." << std::endl;
 
-            // 1. CLASES (Críticas)
+            // 1. CLASES
             ResolveClass(xorstr("Minecraft"), { xorstr("ave"), xorstr("net/minecraft/client/Minecraft") });
             ResolveClass(xorstr("EntityPlayerSP"), { xorstr("bew"), xorstr("bud"), xorstr("net/minecraft/client/entity/EntityPlayerSP") });
             ResolveClass(xorstr("MovingObjectPosition"), { xorstr("auu"), xorstr("net/minecraft/util/MovingObjectPosition") });
             ResolveClass(xorstr("GuiScreen"), { xorstr("axu"), xorstr("net/minecraft/client/gui/GuiScreen") });
-
-            std::cout << "[MAPPER] Escaneando Campos..." << std::endl;
+            ResolveClass(xorstr("MovingObjectType"), 
+                { 
+                    xorstr("auu$a"), 
+                    xorstr("net/minecraft/util/MovingObjectPosition$MovingObjectType"),
+                }
+            );
 
             // 2. CAMPOS
+
             // thePlayer
             ResolveField(xorstr("Minecraft"), xorstr("Minecraft_thePlayer"),
                 { xorstr("h"), xorstr("thePlayer"), xorstr("field_71439_g") },
                 { xorstr("Lbew;"), xorstr("Lbud;"), xorstr("Lnet/minecraft/client/entity/EntityPlayerSP;") }
             );
 
-            // objectMouseOver
+            // objectMouseOver (CORREGIDO CON 't' y 'q')
             ResolveField(xorstr("Minecraft"), xorstr("Minecraft_objectMouseOver"),
-                { xorstr("s"), xorstr("r"), xorstr("objectMouseOver"), xorstr("field_71476_x") },
+                { xorstr("s"), xorstr("r"), xorstr("t"), xorstr("q"), xorstr("objectMouseOver"), xorstr("field_71476_x") },
                 { xorstr("Lauu;"), xorstr("Lnet/minecraft/util/MovingObjectPosition;") }
             );
 
@@ -105,13 +147,18 @@ namespace TheVoid {
                 { xorstr("Laxu;"), xorstr("Lnet/minecraft/client/gui/GuiScreen;") }
             );
 
+            // 3. Resolvemos el campo 'typeOfHit' dentro de MovingObjectPosition
+            // Vanilla: 'a' | Forge: 'typeOfHit'
+            ResolveField(xorstr("MovingObjectPosition"), xorstr("MOP_typeOfHit"),
+                { xorstr("a"), xorstr("typeOfHit"), xorstr("field_72313_a") },
+                { xorstr("Lauu$a;"), xorstr("Lnet/minecraft/util/MovingObjectPosition$MovingObjectType;") }
+            );
+
             // leftClickCounter
             ResolveField(xorstr("Minecraft"), xorstr("Minecraft_leftClickCounter"),
                 { xorstr("f"), xorstr("g"), xorstr("e"), xorstr("leftClickCounter") },
                 { xorstr("I") }
             );
-
-            std::cout << "[MAPPER] Escaneando Metodos..." << std::endl;
 
             // 3. MÉTODOS
             ResolveMethod(xorstr("Minecraft"), xorstr("clickMouse"),
@@ -119,7 +166,10 @@ namespace TheVoid {
                 xorstr("()V")
             );
 
-            std::cout << "[MAPPER] Inicializacion completada." << std::endl;
+            // Enum Ordinal (Para SmartMining)
+            ResolveMethod(xorstr("Enum"), xorstr("ordinal"), { xorstr("ordinal") }, xorstr("()I"));
+
+            std::cout << "[MAPPER] Mapeo Estatico Completado. Sistema Dinamico Listo." << std::endl;
         }
     }
 }

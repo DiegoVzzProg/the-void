@@ -14,7 +14,7 @@ namespace TheVoid {
             bool enabled = true;
             int minCPS = 9;
             int maxCPS = 14;
-
+            bool inventory = true;
             // Variables internas de tiempo
             std::chrono::steady_clock::time_point lastClickTime;
             long long nextDelay = 0;
@@ -86,17 +86,38 @@ namespace TheVoid {
                     return;
                 }
 
-                // 2. Safety: ¿Estamos en inventario?
+                static bool messageInGUI = false;
+                static bool messageInventory = false;
+                // 2. Safety: ¿Estamos en una gui?
                 if (mc.InGui()) {
-                    std::cout << "[DEBUG] BLOQUEADO: Inventario abierto (InGui true)" << std::endl;
-                    Java::env->DeleteLocalRef(mc.GetInstance());
-                    return;
+                    if (mc.IsInInventory()) {
+                        if (!inventory) {
+                            if (!messageInventory) {
+                                messageInventory = true;
+                                std::cout << "[DEBUG] BLOQUEADO: Inventario abierto" << std::endl;
+                            }
+                            Java::env->DeleteLocalRef(mc.GetInstance());
+                            return;
+                        }
+                    }
+                    else {
+                        if (!messageInGUI) {
+                            messageInGUI = true;
+                            std::cout << "[DEBUG] BLOQUEADO: Menu abierto" << std::endl;
+                        }
+                        Java::env->DeleteLocalRef(mc.GetInstance());
+                        return;
+                    }                    
                 }
 
+                static bool vIsLookingAtBlock = false;
                 // 3. Smart Mining: ¿Estamos mirando un bloque?
                 // Si miramos un bloque, NO clickeamos, dejamos que Minecraft mine nativamente.
                 if (mc.IsLookingAtBlock()) {
-                    std::cout << "\r[DEBUG] BLOQUEADO: Mirando Bloque (Smart Mining)   " << std::flush;
+                    if (!vIsLookingAtBlock) {
+                        vIsLookingAtBlock = true;
+                        std::cout << "\r[DEBUG] BLOQUEADO: Mirando Bloque (Smart Mining)   " << std::flush;
+                    }
                     Java::env->DeleteLocalRef(mc.GetInstance());
                     return;
                 }
