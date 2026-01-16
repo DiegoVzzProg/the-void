@@ -12,24 +12,19 @@ namespace TheVoid {
         private:
             // Configuración (esto luego vendrá de una GUI)
             bool enabled = true;
-            int minCPS = 9;
-            int maxCPS = 14;
+            int minCPS = (maxCPS > 4) ? maxCPS - 3 : 1;
+            int maxCPS = 24;
             bool inventory = true;
+            bool weaponOnly = true;
+
             // Variables internas de tiempo
             std::chrono::steady_clock::time_point lastClickTime;
             long long nextDelay = 0;
 
-            bool IsGameFocused() {
-                // 1. Obtener la ventana que el usuario está viendo actualmente
-                HWND hForeground = GetForegroundWindow();
-                if (!hForeground) return false;
-
-                // 2. Obtener el ID del proceso dueño de esa ventana
-                DWORD foregroundProcessId;
-                GetWindowThreadProcessId(hForeground, &foregroundProcessId);
-
-                // 3. Compararlo con NUESTRO ID (donde estamos inyectados)
-                return (foregroundProcessId == GetCurrentProcessId());
+            std::mt19937& GetGenerator() {
+                static std::random_device rd;
+                static std::mt19937 gen(rd());
+                return gen;
             }
 
             // Generador Gaussiano para humanización
@@ -59,7 +54,11 @@ namespace TheVoid {
                 return delay;
             }
 
+            long long GetHoldTime() {
 
+                std::uniform_int_distribution<> d(30, 60);
+                return d(GetGenerator());
+            }
         public:
             // Singleton: Para acceder a la misma instancia siempre
             static LeftAutoClicker& Instance() {
@@ -68,58 +67,49 @@ namespace TheVoid {
             }
 
             void Update() {
-                if (!IsGameFocused()) {
-                    return;
-                }
                 if (!enabled) return;
 
-                // 1. Trigger: ¿Está presionado el Click Izquierdo?
+                if (!TheVoid::Java::GameWindow) {
+                    TheVoid::Utils::FindGameWindow();
+                    return;
+                }
+
+                if (GetForegroundWindow() != TheVoid::Java::GameWindow) {
+                    return;
+                }
+
                 if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000)) {
-                    // Reseteamos el delay para que el primer click al volver a presionar sea instantáneo
                     nextDelay = 0;
                     return;
                 }
 
                 auto mc = SDK::Minecraft::GetMinecraft();
                 if (!mc.IsValid()) {
-                    std::cout << "[DEBUG] Minecraft no valido" << std::endl;
                     return;
                 }
-
-                static bool messageInGUI = false;
-                static bool messageInventory = false;
-                // 2. Safety: ¿Estamos en una gui?
+                
                 if (mc.InGui()) {
-                    if (mc.IsInInventory()) {
-                        if (!inventory) {
-                            if (!messageInventory) {
-                                messageInventory = true;
-                                std::cout << "[DEBUG] BLOQUEADO: Inventario abierto" << std::endl;
-                            }
-                            Java::env->DeleteLocalRef(mc.GetInstance());
-                            return;
-                        }
-                    }
-                    else {
-                        if (!messageInGUI) {
-                            messageInGUI = true;
-                            std::cout << "[DEBUG] BLOQUEADO: Menu abierto" << std::endl;
-                        }
+                    if (!inventory) {
                         Java::env->DeleteLocalRef(mc.GetInstance());
                         return;
-                    }                    
+                    }
+
+                    if (!mc.IsInInventory()) {
+                        Java::env->DeleteLocalRef(mc.GetInstance());
+                        return;
+                    }
                 }
 
-                static bool vIsLookingAtBlock = false;
-                // 3. Smart Mining: ¿Estamos mirando un bloque?
-                // Si miramos un bloque, NO clickeamos, dejamos que Minecraft mine nativamente.
                 if (mc.IsLookingAtBlock()) {
-                    if (!vIsLookingAtBlock) {
-                        vIsLookingAtBlock = true;
-                        std::cout << "\r[DEBUG] BLOQUEADO: Mirando Bloque (Smart Mining)   " << std::flush;
-                    }
                     Java::env->DeleteLocalRef(mc.GetInstance());
                     return;
+                }
+
+                if (weaponOnly) {
+                    if (!mc.IsHoldingWeapon()) {
+                        Java::env->DeleteLocalRef(mc.GetInstance());
+                        return;
+                    }
                 }
 
                 // 4. Lógica de Tiempo
@@ -127,16 +117,14 @@ namespace TheVoid {
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastClickTime).count();
 
                 if (elapsed >= nextDelay) {
-                    // Intentando golpear...
-                    std::cout << "[DEBUG] INTENTO DE GOLPE (ClickMouse)... " << std::flush;
+                    PostMessageA(TheVoid::Java::GameWindow, WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM(0, 0));
+                    long long holdTime = GetHoldTime();
+                    std::this_thread::sleep_for(std::chrono::milliseconds(holdTime));
 
-                    mc.SetLeftClickCounter(0);
-                    mc.ClickMouse();
+                    PostMessageA(TheVoid::Java::GameWindow, WM_LBUTTONUP, MK_LBUTTON, MAKELPARAM(0, 0));
 
-                    std::cout << "EJECUTADO!" << std::endl;
-
-                    // Recalcular el próximo delay usando matemáticas humanas
-                    nextDelay = GetHumanDelay();
+                    nextDelay = GetHumanDelay() - holdTime;
+                    if (nextDelay < 0) nextDelay = 0;
                     lastClickTime = now;
                 }
 

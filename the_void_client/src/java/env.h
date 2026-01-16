@@ -12,9 +12,11 @@ typedef jint(JNICALL* tJNI_GetCreatedJavaVMs)(JavaVM**, jsize, jsize*);
 namespace TheVoid {
     namespace Java {
 
+        inline HWND GameWindow = nullptr;
         inline JavaVM* vm = nullptr;
         inline JNIEnv* env = nullptr;
         inline bool initialized = false;
+        inline jobject ClassLoaderObj = nullptr;
 
         // ESTA ES LA PIEZA QUE FALTABA
         inline bool Init() {
@@ -58,6 +60,90 @@ namespace TheVoid {
 
             env = temp_env;
             return true;
+        }
+
+        // En src/java/env.h (o donde tengas tus utilidades JNI)
+
+        inline void FixClassLoader() {
+            if (!TheVoid::Java::env) return;
+            JNIEnv* env = TheVoid::Java::env;
+
+            std::cout << "[THE VOID] Arreglando ClassLoader..." << std::endl;
+
+            // 1. Obtener la clase Thread
+            jclass threadCls = env->FindClass("java/lang/Thread");
+
+            // 2. Obtener el método estático 'getAllStackTraces' (Nos da un mapa de todos los hilos)
+            jmethodID getAllStackTracesMid = env->GetStaticMethodID(threadCls, "getAllStackTraces", "()Ljava/util/Map;");
+            jobject mapObj = env->CallStaticObjectMethod(threadCls, getAllStackTracesMid);
+
+            // 3. Obtener el Set de llaves (los hilos) del mapa
+            jclass mapCls = env->GetObjectClass(mapObj);
+            jmethodID keySetMid = env->GetMethodID(mapCls, "keySet", "()Ljava/util/Set;");
+            jobject setObj = env->CallObjectMethod(mapObj, keySetMid);
+
+            // 4. Iterar sobre el Set
+            jclass setCls = env->GetObjectClass(setObj);
+            jmethodID iteratorMid = env->GetMethodID(setCls, "iterator", "()Ljava/util/Iterator;");
+            jobject iteratorObj = env->CallObjectMethod(setObj, iteratorMid);
+
+            jclass iteratorCls = env->GetObjectClass(iteratorObj);
+            jmethodID hasNextMid = env->GetMethodID(iteratorCls, "hasNext", "()Z");
+            jmethodID nextMid = env->GetMethodID(iteratorCls, "next", "()Ljava/lang/Object;");
+
+            jmethodID getNameMid = env->GetMethodID(threadCls, "getName", "()Ljava/lang/String;");
+            jmethodID getContextClassLoaderMid = env->GetMethodID(threadCls, "getContextClassLoader", "()Ljava/lang/ClassLoader;");
+            jmethodID setContextClassLoaderMid = env->GetMethodID(threadCls, "setContextClassLoader", "(Ljava/lang/ClassLoader;)V");
+            jmethodID currentThreadMid = env->GetStaticMethodID(threadCls, "currentThread", "()Ljava/lang/Thread;");
+
+            bool found = false;
+
+            while (env->CallBooleanMethod(iteratorObj, hasNextMid)) {
+                jobject threadObj = env->CallObjectMethod(iteratorObj, nextMid);
+
+                // Obtener nombre del hilo
+                jstring nameStr = (jstring)env->CallObjectMethod(threadObj, getNameMid);
+                const char* nameChars = env->GetStringUTFChars(nameStr, nullptr);
+                std::string name(nameChars);
+                env->ReleaseStringUTFChars(nameStr, nameChars);
+
+                // BUSCAMOS EL HILO PRINCIPAL: "Client thread" (Vanilla/Forge) o "main"
+                if (name == "Client thread" || name == "main") { // main es para Lunar a veces
+                    std::cout << "[THE VOID] Hilo Principal Encontrado: " << name << std::endl;
+
+                    // 1. Obtener el ClassLoader del juego
+                    jobject loader = env->CallObjectMethod(threadObj, getContextClassLoaderMid);
+
+                    // 2. GUARDARLO GLOBALMENTE (Esto es lo que faltaba)
+                    if (loader) {
+                        ClassLoaderObj = env->NewGlobalRef(loader);
+                        std::cout << "[THE VOID] ClassLoader CAPTURADO y guardado." << std::endl;
+                    }
+
+                    // 3. Asignarlo al hilo actual (por si acaso ayuda en algo)
+                    jobject currentThreadObj = env->CallStaticObjectMethod(threadCls, currentThreadMid);
+                    env->CallVoidMethod(currentThreadObj, setContextClassLoaderMid, loader);
+
+                    found = true;
+                    break;
+                }
+
+                env->DeleteLocalRef(threadObj);
+                env->DeleteLocalRef(nameStr);
+            }
+
+            if (!found) {
+                std::cout << "[ERROR FATAL] No se encontro el 'Client thread'. El ClassLoader seguira roto." << std::endl;
+            }
+
+            // Limpieza masiva (Importante)
+            env->DeleteLocalRef(threadCls);
+            env->DeleteLocalRef(mapObj);
+            env->DeleteLocalRef(mapCls);
+            env->DeleteLocalRef(setObj);
+            env->DeleteLocalRef(setCls);
+            env->DeleteLocalRef(iteratorObj);
+            env->DeleteLocalRef(iteratorCls);
         }
     }
 }

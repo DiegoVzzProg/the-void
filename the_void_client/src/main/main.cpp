@@ -53,11 +53,7 @@ namespace TheVoid {
                 if (!mapperInitialized) {
                     std::cout << "[THE VOID] JVM Conectada. Inicializando Mapper..." << std::endl;
 
-                    // Verificación de seguridad extrema antes de llamar
-                    if (TheVoid::Java::env == nullptr) {
-                        std::cout << "[FATAL] Java::env sigue siendo NULL. Pánico." << std::endl;
-                        continue;
-                    }
+                    TheVoid::Java::FixClassLoader();
 
                     // Aquí es seguro llamar a Init porque 'env' ya es válido
                     TheVoid::Java::Mapper::Init();

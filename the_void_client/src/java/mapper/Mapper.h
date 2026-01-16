@@ -7,6 +7,7 @@
 #include "../env.h"
 #include "../../utils/JavaUtils.h"
 #include "../../utils/xorstr.h"
+//#include <map>
 
 namespace TheVoid {
     namespace Java {
@@ -18,7 +19,7 @@ namespace TheVoid {
             static std::unordered_map<std::string, std::string> methods;
             static std::unordered_map<std::string, std::string> fields;
             static std::unordered_map<std::string, std::string> fieldSigs;
-
+            static std::unordered_map<std::string, std::string> methodSigs;
             static std::unordered_map<std::string, jclass> classCache;
 
             // Función maestra
@@ -26,11 +27,25 @@ namespace TheVoid {
 
             static bool LearnAndCheck(jobject obj, std::string cacheKey, std::vector<std::string> searchPatterns);
         private:
+            static void ResolveFieldByAnalysis(std::string classKey, std::string fieldKey, std::vector<std::string> candidates);
+
             static void ResolveClass(std::string internalName, std::vector<std::string> candidates);
 
             static void ResolveField(std::string classKey, std::string fieldKey, std::vector<std::string> candidates, std::vector<std::string> sigCandidates);
 
             static void ResolveMethod(std::string classKey, std::string methodKey, std::vector<std::string> candidates, std::string signature);
+
+            static void ResolveFieldAndAutoDetectSignature(std::string classKey, std::string fieldKey, std::vector<std::string> candidates);
+
+            static void ResolveFieldByIteration(std::string classKey, std::string fieldKey, std::vector<std::string> candidates);
+
+            static void FindRealMOPClass();
+            
+            static void ResolveMethodByAnalysis(std::string classKey, std::string methodKey, std::vector<std::string> candidates);
+
+            static void ResolveMethodByReturnType(std::string classKey, std::string methodKey, std::string returnTypeClassKey);
+
+            static void AutoDetectInventoryChain();
         };
     }
 }
