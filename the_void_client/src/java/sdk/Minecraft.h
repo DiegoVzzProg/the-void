@@ -136,6 +136,10 @@ namespace TheVoid {
 				return CEntity(GetFieldObject(xorstr("Minecraft_thePlayer")));
 			}
 
+			bool IsValid() {
+				return instance != nullptr;
+			}
+
 			void ClickMouse() {
 				if (!IsValid()) return;
 
@@ -205,125 +209,138 @@ namespace TheVoid {
 				return esInventario;
 			}
 
-			// [EN MINECRAFT.H]
-
-			bool IsHoldingWeapon() {
+			// Verifica SOLO si es una espada (Para AutoBlock)
+			bool IsHoldingSword() {
 				if (!instance || !Java::env) return false;
 
-				// Variable estática para no spamear consola si algo falla (solo avisa 1 vez por error)
-				static int failStep = 0;
-
-				// 1. OBTENER JUGADOR (thePlayer)
+				// 1. Obtener Jugador
 				jobject thePlayer = GetFieldObject(xorstr("Minecraft_thePlayer"));
-				if (!thePlayer) {
-					if (failStep != 1) std::cout << "[WEAPON FAIL] Paso 1: Player es nulo." << std::endl;
-					failStep = 1;
-					return false;
-				}
+				if (!thePlayer) return false;
 
-				// 2. OBTENER INVENTARIO
-				// Usamos la clase EntityPlayer (Padre) para buscar el ID, ya que ahí lo guardó el Mapper.
-
-				// Verificamos si el Mapper tiene el dato
+				// 2. Obtener Inventario
+				// Usamos el Generic del Mapper
 				if (Java::Mapper::fields.find(xorstr("Player_inventory")) == Java::Mapper::fields.end()) {
-					if (failStep != 2) std::cout << "[WEAPON FAIL] El Mapper no encontro 'Player_inventory'. Revisa Mapper::Init." << std::endl;
-					failStep = 2;
-					Java::env->DeleteLocalRef(thePlayer);
-					return false;
+					Java::env->DeleteLocalRef(thePlayer); return false;
 				}
 
-				// Cargamos la clase EntityPlayer para pedir el ID
 				jclass entityPlayerClass = Utils::FindClass(Java::Mapper::classes[xorstr("EntityPlayer")].c_str());
-				if (!entityPlayerClass) {
-					// Fallback: intentamos con la clase del objeto actual
-					entityPlayerClass = Java::env->GetObjectClass(thePlayer);
-				}
+				if (!entityPlayerClass) entityPlayerClass = Java::env->GetObjectClass(thePlayer);
 
 				jfieldID invFid = Java::env->GetFieldID(entityPlayerClass,
 					Java::Mapper::fields[xorstr("Player_inventory")].c_str(),
 					Java::Mapper::fieldSigs[xorstr("Player_inventory")].c_str()
 				);
-
 				Java::env->DeleteLocalRef(entityPlayerClass);
 
-				if (!invFid) {
-					if (failStep != 21) std::cout << "[WEAPON FAIL] Paso 2: No se encontro el FieldID del inventario." << std::endl;
-					failStep = 21;
-					Java::env->ExceptionClear();
-					Java::env->DeleteLocalRef(thePlayer);
-					return false;
-				}
+				if (!invFid) { Java::env->DeleteLocalRef(thePlayer); return false; }
 
 				jobject inventoryObj = Java::env->GetObjectField(thePlayer, invFid);
 				Java::env->DeleteLocalRef(thePlayer);
+				if (!inventoryObj) return false;
 
-				if (!inventoryObj) {
-					// Raro, pero posible si el juego está cargando
-					failStep = 0;
-					return false;
-				}
-
-				// 3. OBTENER ITEMSTACK (getCurrentItem)
+				// 3. Get Current Item
 				jclass invClass = Java::env->GetObjectClass(inventoryObj);
-
-				// Verificamos Mapper
-				if (Java::Mapper::methods.find(xorstr("getCurrentItem")) == Java::Mapper::methods.end()) {
-					if (failStep != 3) std::cout << "[WEAPON FAIL] Paso 3: Mapper sin 'getCurrentItem'." << std::endl;
-					failStep = 3;
-					Java::env->DeleteLocalRef(invClass); Java::env->DeleteLocalRef(inventoryObj);
-					return false;
-				}
-
 				jmethodID getCurrentItemMid = Java::env->GetMethodID(invClass,
 					Java::Mapper::methods[xorstr("getCurrentItem")].c_str(),
 					Java::Mapper::methodSigs[xorstr("getCurrentItem")].c_str()
 				);
+				Java::env->DeleteLocalRef(invClass);
+				if (!getCurrentItemMid) { Java::env->DeleteLocalRef(inventoryObj); return false; }
 
+				jobject itemStack = Java::env->CallObjectMethod(inventoryObj, getCurrentItemMid);
+				Java::env->DeleteLocalRef(inventoryObj);
+				if (!itemStack) return false;
+
+				// 4. Get Item Definition
+				jclass itemStackClass = Java::env->GetObjectClass(itemStack);
+				jmethodID getItemMid = Java::env->GetMethodID(itemStackClass,
+					Java::Mapper::methods[xorstr("getItem")].c_str(),
+					Java::Mapper::methodSigs[xorstr("getItem")].c_str()
+				);
+				Java::env->DeleteLocalRef(itemStackClass);
+				if (!getItemMid) { Java::env->DeleteLocalRef(itemStack); return false; }
+
+				jobject itemDef = Java::env->CallObjectMethod(itemStack, getItemMid);
+				Java::env->DeleteLocalRef(itemStack);
+				if (!itemDef) return false;
+
+				// 5. CHECK EXCLUSIVO DE ESPADA
+				jclass clsSword = Utils::FindClass(Java::Mapper::classes[xorstr("ItemSword")].c_str());
+				bool isSword = false;
+				if (clsSword) isSword = Java::env->IsInstanceOf(itemDef, clsSword);
+
+				Java::env->DeleteLocalRef(itemDef);
+				if (clsSword) Java::env->DeleteLocalRef(clsSword);
+
+				return isSword;
+			}
+
+			bool IsHoldingWeapon() {
+				if (!instance || !Java::env) return false;
+
+				// 1. OBTENER JUGADOR
+				jobject thePlayer = GetFieldObject(xorstr("Minecraft_thePlayer"));
+				if (!thePlayer) return false;
+
+				// 2. OBTENER INVENTARIO
+				// Usamos el Generic del Mapper que configuramos
+				if (Java::Mapper::fields.find(xorstr("Player_inventory")) == Java::Mapper::fields.end()) {
+					Java::env->DeleteLocalRef(thePlayer); return false;
+				}
+
+				// Truco: Usamos EntityPlayer (Padre) para buscar el ID, ya que es donde vive el campo
+				jclass entityPlayerClass = Utils::FindClass(Java::Mapper::classes[xorstr("EntityPlayer")].c_str());
+				if (!entityPlayerClass) entityPlayerClass = Java::env->GetObjectClass(thePlayer);
+
+				jfieldID invFid = Java::env->GetFieldID(entityPlayerClass,
+					Java::Mapper::fields[xorstr("Player_inventory")].c_str(),
+					Java::Mapper::fieldSigs[xorstr("Player_inventory")].c_str()
+				);
+				Java::env->DeleteLocalRef(entityPlayerClass);
+
+				if (!invFid) {
+					Java::env->DeleteLocalRef(thePlayer); return false;
+				}
+
+				jobject inventoryObj = Java::env->GetObjectField(thePlayer, invFid);
+				Java::env->DeleteLocalRef(thePlayer);
+				if (!inventoryObj) return false;
+
+				// 3. GET CURRENT ITEM (ItemStack)
+				jclass invClass = Java::env->GetObjectClass(inventoryObj);
+				jmethodID getCurrentItemMid = Java::env->GetMethodID(invClass,
+					Java::Mapper::methods[xorstr("getCurrentItem")].c_str(),
+					Java::Mapper::methodSigs[xorstr("getCurrentItem")].c_str()
+				);
 				Java::env->DeleteLocalRef(invClass);
 
 				if (!getCurrentItemMid) {
-					if (failStep != 31) std::cout << "[WEAPON FAIL] Paso 3.1: JNI no encuentra metodo getCurrentItem." << std::endl;
-					failStep = 31;
-					Java::env->ExceptionClear(); Java::env->DeleteLocalRef(inventoryObj);
-					return false;
+					Java::env->DeleteLocalRef(inventoryObj); return false;
 				}
 
 				jobject itemStack = Java::env->CallObjectMethod(inventoryObj, getCurrentItemMid);
 				Java::env->DeleteLocalRef(inventoryObj);
 
-				if (!itemStack) {
-					// Mano vacía -> No es un error, simplemente retornamos false.
-					failStep = 0;
-					return false;
-				}
+				if (!itemStack) return false; // Mano vacía
 
-				// 4. OBTENER ITEM DEFINITION (getItem)
+				// 4. GET ITEM DEFINITION (Item)
 				jclass itemStackClass = Java::env->GetObjectClass(itemStack);
-
 				jmethodID getItemMid = Java::env->GetMethodID(itemStackClass,
 					Java::Mapper::methods[xorstr("getItem")].c_str(),
 					Java::Mapper::methodSigs[xorstr("getItem")].c_str()
 				);
-
 				Java::env->DeleteLocalRef(itemStackClass);
 
 				if (!getItemMid) {
-					if (failStep != 4) std::cout << "[WEAPON FAIL] Paso 4: JNI no encuentra metodo getItem." << std::endl;
-					failStep = 4;
-					Java::env->ExceptionClear(); Java::env->DeleteLocalRef(itemStack);
-					return false;
+					Java::env->DeleteLocalRef(itemStack); return false;
 				}
 
 				jobject itemDef = Java::env->CallObjectMethod(itemStack, getItemMid);
 				Java::env->DeleteLocalRef(itemStack);
 
-				if (!itemDef) {
-					failStep = 0;
-					return false;
-				}
+				if (!itemDef) return false;
 
-				// 5. COMPARACIÓN (InstanceOf)
-				// Cargamos las clases de Espada y Hacha
+				// 5. CHECK INSTANCEOF (Espada o Hacha)
 				jclass clsSword = Utils::FindClass(Java::Mapper::classes[xorstr("ItemSword")].c_str());
 				jclass clsAxe = Utils::FindClass(Java::Mapper::classes[xorstr("ItemAxe")].c_str());
 
@@ -338,8 +355,6 @@ namespace TheVoid {
 				if (clsSword) Java::env->DeleteLocalRef(clsSword);
 				if (clsAxe)   Java::env->DeleteLocalRef(clsAxe);
 
-				// Éxito
-				failStep = 0;
 				return (isSword || isAxe);
 			}
 
@@ -423,9 +438,44 @@ namespace TheVoid {
 				}
 			}
 
-			// Verificar si el juego est� listo
-			bool IsValid() {
-				return instance != nullptr;
+			// [En Minecraft.h]
+
+			bool IsLookingAtEntity() {
+				if (!instance || !Java::env) return false;
+
+				// 1. Obtener objectMouseOver (MOP)
+				jobject mop = GetFieldObject(xorstr("Minecraft_objectMouseOver"));
+				if (!mop) return false;
+
+				// 2. Obtener FieldID de entityHit
+				// Usamos el Generic del Mapper
+				if (Java::Mapper::fields.find(xorstr("MOP_entityHit")) == Java::Mapper::fields.end()) {
+					Java::env->DeleteLocalRef(mop); return false;
+				}
+
+				jclass mopClass = Java::env->GetObjectClass(mop);
+				jfieldID entityHitID = Java::env->GetFieldID(mopClass,
+					Java::Mapper::fields[xorstr("MOP_entityHit")].c_str(),
+					Java::Mapper::fieldSigs[xorstr("MOP_entityHit")].c_str()
+				);
+				Java::env->DeleteLocalRef(mopClass);
+
+				if (!entityHitID) {
+					Java::env->DeleteLocalRef(mop); return false;
+				}
+
+				// 3. Obtener el objeto
+				jobject entityObj = Java::env->GetObjectField(mop, entityHitID);
+				Java::env->DeleteLocalRef(mop);
+
+				// 4. Veredicto
+				if (entityObj) {
+					// Si el objeto existe, es que estamos mirando a una entidad.
+					Java::env->DeleteLocalRef(entityObj);
+					return true;
+				}
+
+				return false; // Es NULL, estamos mirando aire o bloque
 			}
 		};
 	}

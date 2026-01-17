@@ -159,6 +159,8 @@
     <ClInclude Include="dependencies\jvmti.h" />
     <ClInclude Include="dependencies\jvmticmlr.h" />
     <ClInclude Include="src\java\env.h" />
+    <ClInclude Include="src\java\mapper\helpers\basic\helperBasic.h" />
+    <ClInclude Include="src\java\mapper\helpers\expert\helperExpert.h" />
     <ClInclude Include="src\java\mapper\Mapper.h" />
     <ClInclude Include="src\java\sdk\Entity.h" />
     <ClInclude Include="src\java\sdk\Minecraft.h" />
@@ -170,6 +172,8 @@
     <ClInclude Include="src\utils\xorstr.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\java\mapper\helpers\basic\helperBasic.cpp" />
+    <ClCompile Include="src\java\mapper\helpers\expert\helperExpert.cpp" />
     <ClCompile Include="src\java\mapper\Mapper.cpp" />
     <ClCompile Include="src\main\dllmain.cpp" />
     <ClCompile Include="src\main\main.cpp" />
