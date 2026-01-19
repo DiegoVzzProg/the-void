@@ -104,7 +104,7 @@ namespace TheVoid {
 
             // 1. CLASES
             TheVoid::Helper::Basic::ResolveClass(xorstr("Minecraft"), { xorstr("ave"), xorstr("net/minecraft/client/Minecraft") }); // , xorstr("net.minecraft.client.Minecraft")
-            TheVoid::Helper::Basic::ResolveClass(xorstr("EntityPlayerSP"), { xorstr("bew"), xorstr("bud"), xorstr("net/minecraft/client/entity/EntityPlayerSP") });
+            TheVoid::Helper::Basic::ResolveClass(xorstr("EntityPlayerSP"), { xorstr("bew"), xorstr("bud"), xorstr("biz"), xorstr("net/minecraft/client/entity/EntityPlayerSP") });
             
             TheVoid::Helper::Basic::ResolveClass(xorstr("MovingObjectType"), { xorstr("auu$a"), xorstr("net/minecraft/util/MovingObjectPosition$MovingObjectType") });
 
@@ -118,45 +118,84 @@ namespace TheVoid {
             TheVoid::Helper::Basic::ResolveClass(xorstr("ItemSword"), { xorstr("net/minecraft/item/ItemSword"), xorstr("zy") });
             TheVoid::Helper::Basic::ResolveClass(xorstr("ItemAxe"), { xorstr("net/minecraft/item/ItemAxe"), xorstr("za") });
             TheVoid::Helper::Basic::ResolveClass(xorstr("Entity"), { xorstr("pk"), xorstr("net/minecraft/entity/Entity") });
+            TheVoid::Helper::Basic::ResolveClass(std::string(xorstr("EntityLivingBase")), { std::string(xorstr("pr")), std::string(xorstr("net/minecraft/entity/EntityLivingBase")) });
 
             FindRealMOPClass();
 
-            TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("EntityPlayer"), xorstr("Player_inventory"),
-                { xorstr("bi"), xorstr("inventory"), xorstr("field_71071_by") });
+            // Fields
+            {
+                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("EntityPlayer"), xorstr("Player_inventory"),
+                    { xorstr("bi"), xorstr("inventory"), xorstr("field_71071_by") });
 
-            TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Minecraft"), xorstr("Minecraft_thePlayer"),
-                { xorstr("h"), xorstr("thePlayer"), xorstr("field_71439_g") });
+                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Minecraft"), xorstr("Minecraft_thePlayer"),
+                    { xorstr("h"), xorstr("thePlayer"), xorstr("field_71439_g") });
 
-            TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Minecraft"), xorstr("Minecraft_objectMouseOver"),
-                { xorstr("s"), xorstr("r"), xorstr("t"), xorstr("q"), xorstr("objectMouseOver"), xorstr("field_71476_x") }, xorstr("MovingObjectPosition"));
+                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Minecraft"), xorstr("Minecraft_objectMouseOver"),
+                    { xorstr("s"), xorstr("r"), xorstr("t"), xorstr("q"), xorstr("objectMouseOver"), xorstr("field_71476_x") }, xorstr("MovingObjectPosition"));
          
-            TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Minecraft"), xorstr("Minecraft_currentScreen"),
-                { xorstr("m"), xorstr("l"), xorstr("currentScreen"), xorstr("field_71462_r") }, xorstr("GuiScreen"));
+                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Minecraft"), xorstr("Minecraft_currentScreen"),
+                    { xorstr("m"), xorstr("l"), xorstr("currentScreen"), xorstr("field_71462_r") }, xorstr("GuiScreen"));
             
-            TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Minecraft"), xorstr("Minecraft_leftClickCounter"),
-                { xorstr("f"), xorstr("g"), xorstr("e"), xorstr("leftClickCounter") });
+                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Minecraft"), xorstr("Minecraft_leftClickCounter"),
+                    { xorstr("f"), xorstr("g"), xorstr("e"), xorstr("leftClickCounter") });
 
-            TheVoid::Helper::Expert::ResolveFieldGeneric(
-                xorstr("MovingObjectPosition"),
-                xorstr("MOP_entityHit"),
-                { xorstr("entityHit"), xorstr("d") },
-                xorstr("Entity")
-            );
+                TheVoid::Helper::Expert::ResolveFieldGeneric(
+                    xorstr("MovingObjectPosition"),
+                    xorstr("MOP_entityHit"),
+                    { xorstr("entityHit"), xorstr("d") },
+                    xorstr("Entity")
+                );
 
 
-            TheVoid::Helper::Basic::ResolveClass(std::string(xorstr("EntityLivingBase")), {
-                std::string(xorstr("pr")),
-                std::string(xorstr("net/minecraft/entity/EntityLivingBase"))
+                TheVoid::Helper::Expert::ResolveFieldGeneric(
+                    xorstr("EntityLivingBase"),
+                    xorstr("ELB_hurtTime"),
+                    { xorstr("hurtTime"), xorstr("au"), xorstr("field_70737_aN") }, 
+                    "int" 
+                );
+                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationYaw"), { xorstr("rotationYaw"), xorstr("y") }, "F");
+                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationPitch"), { xorstr("rotationPitch"), xorstr("z") }, "F");
+                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_width"), { xorstr("width"), xorstr("f") }, "F");
+                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_height"), { xorstr("height"), xorstr("g") }, "F");
+                TheVoid::Helper::Expert::ResolveFieldGeneric(
+                    xorstr("MovingObjectPosition"),
+                    xorstr("MOP_typeOfHit"),
+                    { xorstr("typeOfHit"), xorstr("a"), xorstr("field_72313_a") },
+                    xorstr("MovingObjectType")
+                );
+            }
+
+
+            // [Mapper.cpp -> Init()]
+
+            // --- 1. GAME SETTINGS (Sensibilidad) ---
+            // La clase GameSettings. En 1.8 vanilla es 'avh'
+            TheVoid::Helper::Basic::ResolveClass(xorstr("GameSettings"), {
+                xorstr("net/minecraft/client/settings/GameSettings"),
+                xorstr("avh")
                 });
 
-            // 2. hurtTime (El tiempo que la entidad está en rojo)
-            // Buscamos en EntityLivingBase. Es un int.
-            TheVoid::Helper::Expert::ResolveFieldGeneric(
-                xorstr("EntityLivingBase"),
-                xorstr("ELB_hurtTime"),
-                { xorstr("hurtTime"), xorstr("au"), xorstr("field_70737_aN") },
-                "int" // Tipo primitivo int
-            );
+            // El campo 'gameSettings' dentro de Minecraft
+            TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Minecraft"), xorstr("MC_gameSettings"), {
+                xorstr("gameSettings"),
+                xorstr("t")
+                }, xorstr("GameSettings")); // Firma: Lnet/minecraft/client/settings/GameSettings;
+
+            TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("GameSettings"), xorstr("GS_mouseSensitivity"), {
+                xorstr("mouseSensitivity"),
+                xorstr("a")
+                }, "F");
+
+            // --- 2. ENTITY ROTATIONS & EYES ---
+            // Rotaciones (Yaw/Pitch)
+            TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationYaw"), { xorstr("rotationYaw"), xorstr("y") }, "F");
+            TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationPitch"), { xorstr("rotationPitch"), xorstr("z") }, "F");
+
+            // Altura de los ojos (Para apuntar a la cabeza, no a los pies)
+            TheVoid::Helper::Expert::ResolveMethodGeneric(xorstr("Entity"), xorstr("Entity_getEyeHeight"), { xorstr("getEyeHeight"), xorstr("aR") }, "()F");
+
+            // Visibilidad (RayTrace interno del juego - Opcional pero recomendado para Legit)
+            TheVoid::Helper::Expert::ResolveMethodGeneric(xorstr("Entity"), xorstr("Entity_canEntityBeSeen"), { xorstr("canEntityBeSeen"), xorstr("n") }, "(Lnet/minecraft/entity/Entity;)Z");
 
             // Methods
             {
@@ -183,12 +222,6 @@ namespace TheVoid {
                     { xorstr("ordinal") },
                     "int",
                     0
-                );
-                TheVoid::Helper::Expert::ResolveFieldGeneric(
-                    xorstr("MovingObjectPosition"),
-                    xorstr("MOP_typeOfHit"),
-                    { xorstr("typeOfHit"), xorstr("a"), xorstr("field_72313_a") },
-                    xorstr("MovingObjectType")
                 );
             }
 

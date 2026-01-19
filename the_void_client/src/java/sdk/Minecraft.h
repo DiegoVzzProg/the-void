@@ -476,8 +476,6 @@ namespace TheVoid {
 				return false; // Es NULL, estamos mirando aire o bloque
 			}
 
-			// [En Minecraft.h]
-
 			bool TargetHasDamage() {
 				if (!instance || !Java::env) return false;
 
@@ -534,6 +532,101 @@ namespace TheVoid {
 
 				// Si hurtTime > 0, la entidad está parpadeando en rojo (recibió daño)
 				return (hurtTime > 0);
+			}
+
+			float GetEntityYaw(jobject entity) {
+				if (!entity) return 0.0f;
+				// Usamos GetFieldID directo con el mapa del Mapper para velocidad
+				jclass cls = Java::env->GetObjectClass(entity);
+				jfieldID fid = Java::env->GetFieldID(cls, Java::Mapper::fields[xorstr("Entity_rotationYaw")].c_str(), "F");
+				float val = 0.0f;
+				if (fid) val = Java::env->GetFloatField(entity, fid);
+				Java::env->DeleteLocalRef(cls);
+				return val;
+			}
+
+			// Obtener Pitch (Arriba/Abajo)
+			float GetEntityPitch(jobject entity) {
+				if (!entity) return 0.0f;
+				jclass cls = Java::env->GetObjectClass(entity);
+				jfieldID fid = Java::env->GetFieldID(cls, Java::Mapper::fields[xorstr("Entity_rotationPitch")].c_str(), "F");
+				float val = 0.0f;
+				if (fid) val = Java::env->GetFloatField(entity, fid);
+				Java::env->DeleteLocalRef(cls);
+				return val;
+			}
+
+			// ESCRIBIR Yaw (Mover la cámara)
+			void SetEntityYaw(jobject entity, float yaw) {
+				if (!entity) return;
+				jclass cls = Java::env->GetObjectClass(entity);
+				jfieldID fid = Java::env->GetFieldID(cls, Java::Mapper::fields[xorstr("Entity_rotationYaw")].c_str(), "F");
+				if (fid) Java::env->SetFloatField(entity, fid, yaw);
+				Java::env->DeleteLocalRef(cls);
+			}
+
+			// ESCRIBIR Pitch
+			void SetEntityPitch(jobject entity, float pitch) {
+				if (!entity) return;
+				jclass cls = Java::env->GetObjectClass(entity);
+				jfieldID fid = Java::env->GetFieldID(cls, Java::Mapper::fields[xorstr("Entity_rotationPitch")].c_str(), "F");
+				if (fid) Java::env->SetFloatField(entity, fid, pitch);
+				Java::env->DeleteLocalRef(cls);
+			}
+
+			// Obtener altura de ojos (Para apuntar bien)
+			float GetEntityEyeHeight(jobject entity) {
+				if (!entity) return 0.0f;
+				jclass cls = Java::env->GetObjectClass(entity);
+				jmethodID mid = Java::env->GetMethodID(cls, Java::Mapper::methods[xorstr("Entity_getEyeHeight")].c_str(), "()F");
+				float val = 1.62f; // Default player height
+				if (mid) val = Java::env->CallFloatMethod(entity, mid);
+				Java::env->DeleteLocalRef(cls);
+				return val;
+			}
+
+			// --- SENSIBILIDAD DEL MOUSE (Vital para GCD Fix) ---
+
+			float GetMouseSensitivity() {
+				jobject mc = GetInstance();
+				if (!mc) return 0.5f;
+
+				// 1. Obtener objeto GameSettings
+				jclass mcClass = Java::env->GetObjectClass(mc);
+				jfieldID gsField = Java::env->GetFieldID(mcClass, Java::Mapper::fields[xorstr("MC_gameSettings")].c_str(), "Lnet/minecraft/client/settings/GameSettings;"); // O usar signature del mapper
+				Java::env->DeleteLocalRef(mcClass);
+
+				if (!gsField) { Java::env->DeleteLocalRef(mc); return 0.5f; }
+
+				jobject gameSettings = Java::env->GetObjectField(mc, gsField);
+				Java::env->DeleteLocalRef(mc);
+
+				if (!gameSettings) return 0.5f;
+
+				// 2. Obtener float mouseSensitivity
+				jclass gsClass = Java::env->GetObjectClass(gameSettings);
+				jfieldID sensField = Java::env->GetFieldID(gsClass, Java::Mapper::fields[xorstr("GS_mouseSensitivity")].c_str(), "F");
+
+				float sensitivity = 0.5f;
+				if (sensField) {
+					sensitivity = Java::env->GetFloatField(gameSettings, sensField);
+				}
+
+				Java::env->DeleteLocalRef(gsClass);
+				Java::env->DeleteLocalRef(gameSettings);
+
+				return sensitivity;
+			}
+
+			// --- VISIBILIDAD (RayTrace Check) ---
+			bool CanEntityBeSeen(jobject me, jobject target) {
+				if (!me || !target) return false;
+				jclass cls = Java::env->GetObjectClass(me);
+				jmethodID mid = Java::env->GetMethodID(cls, Java::Mapper::methods[xorstr("Entity_canEntityBeSeen")].c_str(), "(Lnet/minecraft/entity/Entity;)Z");
+				bool result = false;
+				if (mid) result = Java::env->CallBooleanMethod(me, mid, target);
+				Java::env->DeleteLocalRef(cls);
+				return result;
 			}
 		};
 	}

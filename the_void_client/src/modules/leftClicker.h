@@ -1,11 +1,11 @@
 #pragma once
 #include <chrono>
 #include <random>
-#include "../../java/sdk/Minecraft.h"
-#include "../../utils/math.h"
-#include "../../utils/xorstr.h"
-#include "../../utils/obf.h"
-#include "../../utils/JunkCode.h"
+#include "../java/sdk/Minecraft.h"
+#include "../utils/math.h"
+#include "../utils/xorstr.h"
+#include "../utils/obf.h"
+#include "../utils/JunkCode.h"
 
 namespace TheVoid {
     namespace Modules {

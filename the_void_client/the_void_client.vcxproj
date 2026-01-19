@@ -165,7 +165,8 @@
     <ClInclude Include="src\java\sdk\Entity.h" />
     <ClInclude Include="src\java\sdk\Minecraft.h" />
     <ClInclude Include="src\main\main.h" />
-    <ClInclude Include="src\modules\clicker\leftClicker.h" />
+    <ClInclude Include="src\modules\aimAssist.h" />
+    <ClInclude Include="src\modules\leftClicker.h" />
     <ClInclude Include="src\modules\modules.h" />
     <ClInclude Include="src\utils\JavaUtils.h" />
     <ClInclude Include="src\utils\JunkCode.h" />

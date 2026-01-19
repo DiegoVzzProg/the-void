@@ -57,7 +57,7 @@
     <ClInclude Include="src\main\main.h">
       <Filter>Archivos de encabezado</Filter>
     </ClInclude>
-    <ClInclude Include="src\modules\clicker\leftClicker.h">
+    <ClInclude Include="src\modules\leftClicker.h">
       <Filter>Archivos de encabezado</Filter>
     </ClInclude>
     <ClInclude Include="src\utils\math.h">
@@ -79,6 +79,9 @@
       <Filter>Archivos de encabezado</Filter>
     </ClInclude>
     <ClInclude Include="src\utils\JunkCode.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="src\modules\aimAssist.h">
       <Filter>Archivos de encabezado</Filter>
     </ClInclude>
   </ItemGroup>
