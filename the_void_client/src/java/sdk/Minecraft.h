@@ -438,8 +438,6 @@ namespace TheVoid {
 				}
 			}
 
-			// [En Minecraft.h]
-
 			bool IsLookingAtEntity() {
 				if (!instance || !Java::env) return false;
 
@@ -476,6 +474,66 @@ namespace TheVoid {
 				}
 
 				return false; // Es NULL, estamos mirando aire o bloque
+			}
+
+			// [En Minecraft.h]
+
+			bool TargetHasDamage() {
+				if (!instance || !Java::env) return false;
+
+				// 1. Obtener objectMouseOver
+				jobject mop = GetFieldObject(xorstr("Minecraft_objectMouseOver"));
+				if (!mop) return false;
+
+				// 2. Obtener entityHit (La entidad apuntada)
+				if (Java::Mapper::fields.find(xorstr("MOP_entityHit")) == Java::Mapper::fields.end()) {
+					Java::env->DeleteLocalRef(mop); return false;
+				}
+
+				// (Usamos la lógica que ya tienes para sacar el FieldID de entityHit...)
+				jclass mopClass = Java::env->GetObjectClass(mop);
+				jfieldID entityHitID = Java::env->GetFieldID(mopClass,
+					Java::Mapper::fields[xorstr("MOP_entityHit")].c_str(),
+					Java::Mapper::fieldSigs[xorstr("MOP_entityHit")].c_str()
+				);
+				Java::env->DeleteLocalRef(mopClass);
+
+				if (!entityHitID) { Java::env->DeleteLocalRef(mop); return false; }
+
+				jobject targetEntity = Java::env->GetObjectField(mop, entityHitID);
+				Java::env->DeleteLocalRef(mop);
+
+				if (!targetEntity) return false; // Mirando aire
+
+				// 3. LEER HURT TIME
+				// Primero casteamos a EntityLivingBase para acceder al campo
+				// (Nota: Si apuntas a un bote o vagoneta crasheará si no validas, 
+				// pero IsLookingAtEntity ya filtra bastante).
+
+				if (Java::Mapper::fields.find(xorstr("ELB_hurtTime")) == Java::Mapper::fields.end()) {
+					Java::env->DeleteLocalRef(targetEntity); return false;
+				}
+
+				// Usamos la clase EntityLivingBase del Mapper
+				jclass elbClass = Utils::FindClass(Java::Mapper::classes[xorstr("EntityLivingBase")].c_str());
+				if (!elbClass) {
+					// Fallback: Usar la clase del objeto mismo
+					elbClass = Java::env->GetObjectClass(targetEntity);
+				}
+
+				jfieldID hurtTimeID = Java::env->GetFieldID(elbClass,
+					Java::Mapper::fields[xorstr("ELB_hurtTime")].c_str(),
+					"I" // Firma de int
+				);
+				Java::env->DeleteLocalRef(elbClass);
+
+				if (!hurtTimeID) { Java::env->DeleteLocalRef(targetEntity); return false; }
+
+				jint hurtTime = Java::env->GetIntField(targetEntity, hurtTimeID);
+				Java::env->DeleteLocalRef(targetEntity);
+
+				// Si hurtTime > 0, la entidad está parpadeando en rojo (recibió daño)
+				return (hurtTime > 0);
 			}
 		};
 	}

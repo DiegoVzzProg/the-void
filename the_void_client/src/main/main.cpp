@@ -63,8 +63,9 @@ namespace TheVoid {
                 }
 
                 CMain::Test();
-                TheVoid::Modules::LeftAutoClicker::Instance().Update();
 
+                TheVoid::Modules::LeftAutoClicker::Instance().Update();
+                TheVoid::Modules::LeftAutoClicker::Instance().AutoBlockUpdate();
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }

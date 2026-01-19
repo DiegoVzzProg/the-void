@@ -10,7 +10,7 @@ namespace TheVoid {
         std::unordered_map<std::string, jclass> Mapper::classCache;
 
         bool Mapper::LearnAndCheck(jobject obj, std::string cacheKey, std::vector<std::string> searchPatterns) {
-            if (!obj) return false;
+            if (!env || !obj) return false;
 
             // 1. CACHE HIT (Ruta Rápida)
             // Si ya aprendimos qué es esto, usamos IsInstanceOf (Nativo y veloz)
@@ -96,6 +96,7 @@ namespace TheVoid {
             env->DeleteLocalRef(fieldClass);
             env->DeleteLocalRef(classOfClass);
             env->DeleteLocalRef(mcClass);
+            env->ExceptionClear();
         }
 
         void Mapper::Init() {
@@ -143,6 +144,19 @@ namespace TheVoid {
             );
 
 
+            TheVoid::Helper::Basic::ResolveClass(std::string(xorstr("EntityLivingBase")), {
+                std::string(xorstr("pr")),
+                std::string(xorstr("net/minecraft/entity/EntityLivingBase"))
+                });
+
+            // 2. hurtTime (El tiempo que la entidad está en rojo)
+            // Buscamos en EntityLivingBase. Es un int.
+            TheVoid::Helper::Expert::ResolveFieldGeneric(
+                xorstr("EntityLivingBase"),
+                xorstr("ELB_hurtTime"),
+                { xorstr("hurtTime"), xorstr("au"), xorstr("field_70737_aN") },
+                "int" // Tipo primitivo int
+            );
 
             // Methods
             {

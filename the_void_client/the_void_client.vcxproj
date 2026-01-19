@@ -168,7 +168,9 @@
     <ClInclude Include="src\modules\clicker\leftClicker.h" />
     <ClInclude Include="src\modules\modules.h" />
     <ClInclude Include="src\utils\JavaUtils.h" />
+    <ClInclude Include="src\utils\JunkCode.h" />
     <ClInclude Include="src\utils\math.h" />
+    <ClInclude Include="src\utils\obf.h" />
     <ClInclude Include="src\utils\xorstr.h" />
   </ItemGroup>
   <ItemGroup>

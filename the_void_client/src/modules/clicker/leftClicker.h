@@ -4,6 +4,8 @@
 #include "../../java/sdk/Minecraft.h"
 #include "../../utils/math.h"
 #include "../../utils/xorstr.h"
+#include "../../utils/obf.h"
+#include "../../utils/JunkCode.h"
 
 namespace TheVoid {
     namespace Modules {
@@ -12,14 +14,20 @@ namespace TheVoid {
         private:
             // Configuración (esto luego vendrá de una GUI)
             bool enabled = true;
-            int minCPS = (maxCPS > 4) ? maxCPS - 3 : 1;
-            int maxCPS = 24;
+            OBF(int) maxCPS = 24;
+            OBF(int) minCPS = (maxCPS > 4) ? maxCPS - 3 : 1;
             bool inventory = true;
             bool weaponOnly = true;
+            bool autoBlock = true;
+            OBF(int) blockChance = 85;
+            OBF(int) blockDuration = 60;
 
             // Variables internas de tiempo
             std::chrono::steady_clock::time_point lastClickTime;
-            long long nextDelay = 0;
+            OBF(long long) nextDelay = 0;
+
+            std::chrono::steady_clock::time_point lastBlockTime;
+            OBF(long long) nextBlockDelay = 0; // Espera entre bloqueos (Cooldown)
 
             std::mt19937& GetGenerator() {
                 static std::random_device rd;
@@ -28,23 +36,17 @@ namespace TheVoid {
             }
 
             // Generador Gaussiano para humanización
-            // Retorna un delay en ms basado en una distribución normal
             long long GetHumanDelay() {
                 static std::random_device rd;
                 static std::mt19937 gen(rd());
 
-                // Calculamos la media de CPS deseada
                 double avgCPS = (minCPS + maxCPS) / 2.0;
                 double meanDelay = 1000.0 / avgCPS;
 
-                // Desviación estándar (qué tanto se aleja del centro). 
-                // Un valor alto = clicks muy irregulares. Un valor bajo = clicks robóticos.
-                // 15.0ms es un buen punto medio "Legit".
                 std::normal_distribution<> d(meanDelay, 15.0);
 
                 long long delay = static_cast<long long>(d(gen));
 
-                // Límites duros para que no clickee a 50 CPS por error matemático
                 long long minDelay = 1000 / (maxCPS + 3);
                 long long maxDelay = 1000 / (minCPS - 3);
 
@@ -59,22 +61,36 @@ namespace TheVoid {
                 std::uniform_int_distribution<> d(30, 60);
                 return d(GetGenerator());
             }
+
+            long long GetNextBlockDelay() {
+                std::uniform_int_distribution<> d(800, 1000);
+                return d(GetGenerator());
+            }
         public:
-            // Singleton: Para acceder a la misma instancia siempre
             static LeftAutoClicker& Instance() {
                 static LeftAutoClicker instance;
                 return instance;
             }
 
-            void Update() {
-                if (!enabled) return;
-
+            bool FoundGame() {
                 if (!TheVoid::Java::GameWindow) {
                     TheVoid::Utils::FindGameWindow();
-                    return;
+                    return false;
                 }
 
                 if (GetForegroundWindow() != TheVoid::Java::GameWindow) {
+                    return false;
+                }
+
+                return true;
+            }
+
+            void Update() {
+                POLYMORPH();
+
+                if (!enabled) return;
+
+                if (!FoundGame()) {
                     return;
                 }
 
@@ -87,7 +103,7 @@ namespace TheVoid {
                 if (!mc.IsValid()) {
                     return;
                 }
-                
+
                 if (mc.InGui()) {
                     if (!inventory) {
                         Java::env->DeleteLocalRef(mc.GetInstance());
@@ -112,7 +128,6 @@ namespace TheVoid {
                     }
                 }
 
-                // 4. Lógica de Tiempo
                 auto now = std::chrono::steady_clock::now();
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastClickTime).count();
 
@@ -131,6 +146,52 @@ namespace TheVoid {
                 Java::env->DeleteLocalRef(mc.GetInstance());
             }
 
+            void AutoBlockUpdate() {
+                auto mc = SDK::Minecraft::GetMinecraft();
+
+                if (!autoBlock || !enabled) {
+                    Java::env->DeleteLocalRef(mc.GetInstance());
+                    return;
+                }
+
+                if (!mc.InGui()) {
+                    Java::env->DeleteLocalRef(mc.GetInstance());
+                    return;
+                }
+
+                if((GetAsyncKeyState(VK_LBUTTON) & 0x8000)) {
+                    Java::env->DeleteLocalRef(mc.GetInstance());
+                    return;
+                }
+
+                if (!(mc.IsHoldingSword() && mc.IsLookingAtEntity())) {
+                    Java::env->DeleteLocalRef(mc.GetInstance());
+                    return;
+                }
+
+                auto now = std::chrono::steady_clock::now();
+                auto elapsedBlock = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastBlockTime).count();
+
+                if (elapsedBlock >= nextBlockDelay) {
+                    std::uniform_int_distribution<> d(0, 100);
+                    if (d(GetGenerator()) <= blockChance) {
+
+                        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+                        PostMessageA(TheVoid::Java::GameWindow, WM_RBUTTONDOWN, MK_RBUTTON, MAKELPARAM(0, 0));
+
+                        std::this_thread::sleep_for(std::chrono::milliseconds(blockDuration));
+
+                        PostMessageA(TheVoid::Java::GameWindow, WM_RBUTTONUP, MK_RBUTTON, MAKELPARAM(0, 0));
+
+                        lastBlockTime = std::chrono::steady_clock::now();
+                        nextBlockDelay = GetNextBlockDelay();
+                    }
+                }
+                
+
+                Java::env->DeleteLocalRef(mc.GetInstance());
+            }
         };
     }
 }
