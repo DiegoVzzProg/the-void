@@ -59,6 +59,10 @@ class AuthService {
    */
   async loginUser(params, hwid) {
     const { email, password } = params;
+    if (!email || !password) {
+      throw new Error("Invalid credentials");
+    }
+
     let user = await prisma.void_users.findUnique({
       where: { email: email },
     });

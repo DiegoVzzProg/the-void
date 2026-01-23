@@ -1,14 +1,23 @@
 <script setup lang="ts">
-import { Form, KeyRound, LayoutDashboard, Package, Settings2, TvMinimal, User } from 'lucide-vue-next';
 import { onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { storeToRefs } from 'pinia';
+import { Form, KeyRound, LayoutDashboard, Package, Settings2, TvMinimal, User } from 'lucide-vue-next';
+
+// Components
 import Logo from '../components/Logo.vue';
+
+// Stores & Services
 import { useAuthStorage } from '../stores/auth.store';
 import { useUserStorage } from '../stores/user.store';
 import { Utils } from '../utilities/utilities';
-import { useRoute } from 'vue-router';
 
+const route = useRoute();
+const authStore = useAuthStorage();
+const userStore = useUserStorage();
+const { optionActive } = storeToRefs(authStore);
+const { username, email } = storeToRefs(userStore);
 
-const router = useRoute();
 const iconMap = {
     LayoutDashboard,
     Package,
@@ -19,30 +28,17 @@ const iconMap = {
 };
 
 type IconName = keyof typeof iconMap;
+
 const options = [
     { id: 1, icono: "TvMinimal", text: "information", visible: true, params: {} },
     { id: 2, icono: "LayoutDashboard", text: "dashboard", visible: false, params: {} },
     { id: 3, icono: "Package", text: "modules", visible: true, params: {} },
     { id: 4, icono: "Settings2", text: "settings", visible: false, params: {} },
     { id: 5, icono: "Form", text: "forum", visible: false, params: {} },
-    { id: 6, icono: "KeyRound", text: "auth", visible: useAuthStorage().optionActive, params: { view: "login" } },
-]
+    { id: 6, icono: "KeyRound", text: "auth", visible: optionActive.value, params: { view: "login" } },
+];
 
-onMounted(() => {
-})
-
-watch(
-    () => useAuthStorage().optionActive,
-    (newValue) => {
-        console.log(newValue);
-        if (options[5]) {
-            console.log(newValue);
-
-            options[5].visible = newValue ?? false;
-        }
-    }
-);
-
+// Determine icon dynamically
 const getIcon = (name: string) => {
     if (name && name in iconMap) {
         return iconMap[name as IconName];
@@ -50,69 +46,128 @@ const getIcon = (name: string) => {
     return null;
 };
 
+// Navigation handler
 const seeOption = (page: string, params: Record<string, string> | undefined) => {
     const site = new Utils();
     site.RedirectPage({
         name: page,
         params: params
     });
-}
+};
 
+// Sync auth visibility
+watch(
+    () => optionActive.value,
+    (newValue) => {
+        if (options[5]) {
+            options[5].visible = newValue ?? false;
+        }
+    }
+);
+
+onMounted(() => {
+    // Layout mounted logic if needed
+});
 </script>
 
 <template>
-    <!-- Orbe 1: Brillo Teal (Arriba Izquierda) -->
-    <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] 
+    <!-- Background Orbs -->
+    <div class="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] 
               bg-[#2dd4bf]/10 rounded-full blur-[120px] 
-              pointer-events-none animate-pulse">
+              pointer-events-none animate-pulse z-0">
     </div>
 
-    <!-- Orbe 2: Brillo Rosa (Abajo Derecha con Retraso) -->
-    <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] 
+    <div class="fixed bottom-[-10%] right-[-10%] w-[500px] h-[500px] 
               bg-[#f472b6]/10 rounded-full blur-[120px] 
-              pointer-events-none animate-pulse" style="animation-delay: 1s;">
+              pointer-events-none animate-pulse z-0" style="animation-delay: 1s;">
     </div>
 
-    <main class="flex flex-col w-full h-dvh overflow-auto">
-        <div class="flex-1 flex lg:items-center lg:justify-center lg:p-4">
+    <main class="flex flex-col w-full h-dvh overflow-hidden relative z-10 text-slate-300">
+        <div class="flex-1 flex lg:items-center lg:justify-center lg:p-4 overflow-hidden">
             <div
-                class="w-full max-w-[1200px] bg-[#0a0a0c] h-full lg:max-h-[680px] border border-[#232732] lg:rounded-4xl flex max-lg:flex-col-reverse z-10 overflow-hidden">
+                class="w-full max-w-[1200px] bg-[#0a0a0c] h-full lg:max-h-[680px] border border-[#232732] lg:rounded-xl flex max-lg:flex-col-reverse shadow-2xl overflow-hidden">
+
+                <!-- Sidebar -->
                 <aside
-                    class="flex flex-row lg:flex-col bg-[#0e1012] w-full lg:max-w-3xs h-full max-lg:max-h-[80px] lg:border-r lg:border-r-[#232732] gap-4 p-4">
-                    <div class="flex items-center justify-start px-4 lg:py-6 max-lg:hidden">
-                        <Logo />
+                    class="flex flex-row lg:flex-col bg-[#0e1012] w-full lg:max-w-[280px] h-full max-lg:max-h-[80px] lg:border-r lg:border-r-[#232732] gap-4 p-4 shrink-0 justify-between">
+
+                    <div class="flex flex-col gap-6 w-full">
+                        <div class="flex items-center justify-start px-4 lg:py-2 max-lg:hidden">
+                            <Logo />
+                        </div>
+
+                        <nav class="flex lg:flex-col max-lg:justify-between gap-2 w-full">
+                            <template v-for="item in options" :key="item.id">
+                                <button v-if="item.visible" :class="[
+                                    'lg:w-full flex items-center p-3 rounded-xl transition-all duration-300 gap-3 group relative overflow-hidden',
+                                    route.name === item.text
+                                        ? 'bg-indigo-500/10 text-indigo-400 font-medium'
+                                        : 'hover:bg-white/5 hover:text-white text-slate-400'
+                                ]" @click="seeOption(item.text, item.params as Record<string, string> | undefined)">
+
+                                    <component :is="getIcon(item.icono)"
+                                        :class="['transition-all duration-300', route.name === item.text ? 'size-[22px] stroke-[2.5px]' : 'size-[22px] stroke-[1.5px] group-hover:stroke-white']" />
+
+                                    <span class="max-lg:hidden text-sm tracking-wide">{{ item.text }}</span>
+
+                                    <!-- Active indicator strip -->
+                                    <div v-if="route.name === item.text"
+                                        class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-indigo-500 rounded-r-full shadow-[0_0_10px_#6366f1] max-lg:hidden">
+                                    </div>
+                                </button>
+                            </template>
+                        </nav>
                     </div>
-                    <div class="flex lg:flex-col max-lg:justify-between gap-2 flex-1">
-                        <template v-for="item in options" :key="item.id">
-                            <button v-if="item.visible" :class="[
-                                'lg:w-full flex items-center p-3 rounded-xl transition-all duration-200 gap-2',
-                                router.name === item.text ? 'bg-[#6365f13d] text-[#6366F1]' : 'hover:bg-white/5 hover:text-white text-[#64748B] shadow-inner'
-                            ]" @click="seeOption(item.text, item.params as Record<string, string> | undefined)">
-                                <component :is="getIcon(item.icono)"
-                                    :class="['transition-all duration-200', router.name === item.text ? 'size-[28px]' : 'size-[24px]']" />
-                                <span class="max-lg:hidden">{{ item.text }}</span>
-                            </button>
-                        </template>
-                    </div>
-                    <div v-if="useUserStorage().username !== ''"
-                        class="bg-[#18181B] border border-[#232732] rounded-xl lg:py-4 px-4 lg:w-full flex flex-row lg:flex-col items-center gap-2 lg:mb-2 shadow-lg">
-                        <button
-                            class="lg:size-16 rounded-full overflow-hidden border border-indigo-500 bg-[#222] flex items-center justify-center">
-                            <User class="p-1 lg:size-8 stroke-slate-400" />
-                        </button>
-                        <div class="flex flex-col items-center text-sm lg:text-md">
-                            <span class="gradient-text lg:text-white leading-tight" v-text="useUserStorage().username">
+
+                    <!-- User Profile -->
+                    <div v-if="username !== ''"
+                        class="bg-[#18181B]/50 border border-[#232732] rounded-2xl p-3 lg:p-4 w-full flex flex-row lg:flex-row items-center gap-3 backdrop-blur-md transition-all hover:bg-[#18181B] hover:border-indigo-500/30 group cursor-pointer max-lg:hidden">
+                        <div
+                            class="size-10 rounded-full overflow-hidden border border-indigo-500/50 bg-[#222] flex items-center justify-center shrink-0 shadow-[0_0_15px_-5px_#6366f1]">
+                            <User class="size-6 text-indigo-400" />
+                        </div>
+                        <div class="flex flex-col overflow-hidden">
+                            <span
+                                class="text-sm font-semibold text-white truncate group-hover:text-indigo-300 transition-colors">
+                                {{ username }}
                             </span>
-                            <small class="text-[#64748B]" v-text="useUserStorage().email"></small>
+                            <small class="text-xs text-slate-500 truncate">{{ email }}</small>
                         </div>
                     </div>
                 </aside>
-                <section class="flex flex-col flex-1 p-2 lg:p-4">
-                    <slot></slot>
+
+                <!-- Main Content Area -->
+                <section
+                    class="flex flex-col flex-1 relative overflow-hidden bg-gradient-to-br from-[#0a0a0c] to-[#0f1116]">
+                    <div
+                        class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay">
+                    </div>
+
+                    <div class="flex-1 w-full h-full overflow-y-auto overflow-x-hidden p-1 md:p-4 lg:p-8 scroll-smooth z-10">
+                        <slot></slot>
+                    </div>
                 </section>
             </div>
         </div>
     </main>
 </template>
 
-<style scoped></style>
+<style scoped>
+/* Custom scrollbar for the main content area if needed */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #27272a;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46;
+}
+</style>

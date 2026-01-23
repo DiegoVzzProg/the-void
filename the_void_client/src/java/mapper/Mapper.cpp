@@ -119,6 +119,7 @@ namespace TheVoid {
             TheVoid::Helper::Basic::ResolveClass(xorstr("ItemAxe"), { xorstr("net/minecraft/item/ItemAxe"), xorstr("za") });
             TheVoid::Helper::Basic::ResolveClass(xorstr("Entity"), { xorstr("pk"), xorstr("net/minecraft/entity/Entity") });
             TheVoid::Helper::Basic::ResolveClass(std::string(xorstr("EntityLivingBase")), { std::string(xorstr("pr")), std::string(xorstr("net/minecraft/entity/EntityLivingBase")) });
+            TheVoid::Helper::Basic::ResolveClass(xorstr("WorldClient"), { xorstr("net/minecraft/client/multiplayer/WorldClient"), xorstr("cen") });
 
             FindRealMOPClass();
 
@@ -163,6 +164,13 @@ namespace TheVoid {
                     { xorstr("typeOfHit"), xorstr("a"), xorstr("field_72313_a") },
                     xorstr("MovingObjectType")
                 );
+
+                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_posX"), { xorstr("posX"), xorstr("s") }, "D");
+                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_posY"), { xorstr("posY"), xorstr("t") }, "D");
+                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_posZ"), { xorstr("posZ"), xorstr("u") }, "D");
+
+                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Minecraft"), xorstr("MC_theWorld"), { xorstr("theWorld"), xorstr("f") }, xorstr("WorldClient"));
+                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("WorldClient"), xorstr("World_entityList"), { xorstr("loadedEntityList"), xorstr("k") }, "java/util/List");
             }
 
 

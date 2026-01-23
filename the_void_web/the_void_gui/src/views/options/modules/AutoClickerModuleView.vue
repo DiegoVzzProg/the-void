@@ -1,90 +1,75 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
 import { CommandModuleService } from '../../../services/command-module.service';
 import type { ICommand } from '../../../interfaces/command-module.interface';
+import type { IAutoClicker } from '../../../interfaces/modules.interface';
 import type { SelectOption } from '../../../components/SelectOptions.vue';
+
 import CardModule from '../../../components/CardModule.vue';
 import Slider from '../../../components/Slider.vue';
 import SelectOptions from '../../../components/SelectOptions.vue';
-import type { IAutoClicker } from '../../../interfaces/modules.interface';
 
 const props = defineProps<{ settings: IAutoClicker | null }>();
 
+// Constants
+const AUTO_CLICKER_OPTIONS: SelectOption[] = [
+    { label: "blatan", value: "blatan" },
+    { label: "inventory", value: "inventory" },
+    { label: "auto block hit", value: "auto_block_hit" },
+    { label: "weapon check", value: "weapon_check" },
+    { label: "ignore blocks", value: "ignore_blocks" },
+    { label: "blockhit", value: "blockhit" },
+    { label: "exhaust", value: "exhaust" },
+];
+
+const MIN_CPS = 5;
+const NORMAL_MAX_CPS = 24;
+const BLATANT_MAX_CPS = 80;
+
+// State
+const autoClicker = ref<boolean>(false);
+const autoClickerValue = ref<number>(12);
+const autoClickerConditions = ref<string[]>([]);
+const autoClickerSliderMin = ref<number>(MIN_CPS);
+const autoClickerSliderMax = ref<number>(NORMAL_MAX_CPS);
+const autoClickerValuesBlackList = ref<string[]>([]);
+
+// Services
+const commandService = new CommandModuleService();
+
+// Watchers
 watch(
     () => props.settings,
     (newSettings) => {
-        if (newSettings) {
-            loadConfig();
-        }
+        if (newSettings) loadConfig();
     },
     { immediate: true }
 );
 
 const loadConfig = () => {
     const settings = props.settings;
-    console.log(settings)
-    if (!settings)
-        return;
+    if (!settings) return;
 
-    autoClicker.value = settings.action === 'enable' ? true : false;
+    autoClicker.value = settings.action === 'enable';
     autoClickerValue.value = settings.cps;
     autoClickerConditions.value = settings.conditions;
+
+    // Sync slider max if blatan is enabled
+    if (autoClickerConditions.value.includes("blatan")) {
+        autoClickerSliderMax.value = BLATANT_MAX_CPS;
+    }
 }
 
+// Logic
 const commandModule = async (commandParams: ICommand) => {
-    const commandService = new CommandModuleService();
-
-    const command = await commandService.Command(commandParams);
-
-    const data = command.data;
-    if (!data) return;
-
-    if (data.status !== 'Connected') {
-        return;
+    try {
+        const command = await commandService.Command(commandParams);
+        const data = command.data;
+        if (!data || data.status !== 'Connected') return;
+    } catch (error) {
+        console.error("Error sending command:", error);
     }
-}
-
-const autoClicker = ref<boolean>(false);
-const autoClickerValue = ref<number>(12);
-
-const autoClickerConditions = ref<string[]>([]);
-
-const autoClickerSliderMin = ref<number>(5);
-const autoClickerSliderMax = ref<number>(24);
-
-const autoClickerValuesBlackList = ref<string[]>([]);
-
-const autoClickerOptions = ref<SelectOption[]>([
-    { label: "blatan", value: "blatan" },
-    { label: "inventory", value: "inventory" },
-    { label: "auto block hit", value: "auto_block_hit" },
-    { label: "weapon check", value: "weapon_check" },
-    { label: "ignore blocks", value: "ignore_blocks" }
-
-]);
-
-const onActiveAutoClicker = async (value: boolean) => {
-    autoClicker.value = value;
-    await autoClickerModule();
-}
-
-const onChangeAutoClickerValue = async () => {
-    if (!autoClicker.value) return;
-
-    await autoClickerModule();
-}
-
-const onChangeAutoClickerConditions = async (values: string[]) => {
-    if (!autoClicker.value) return;
-
-    if (values.includes("blatan")) {
-        autoClickerSliderMax.value = 80;
-    } else if (!values.includes("blatan") && autoClickerSliderMax.value === 80) {
-        autoClickerSliderMax.value = 24;
-        autoClickerValue.value = 12;
-    }
-
-    await autoClickerModule();
 }
 
 const autoClickerModule = async () => {
@@ -100,10 +85,41 @@ const autoClickerModule = async () => {
     await commandModule(commandParams);
 }
 
+// Handlers
+const onActiveAutoClicker = async (value: boolean) => {
+    autoClicker.value = value;
+    await autoClickerModule();
+}
+
+// Optimized: Debounced execution for slider changes
+const debouncedAutoClickerModule = useDebounceFn(async () => {
+    await autoClickerModule();
+}, 300);
+
+const onChangeAutoClickerValue = () => {
+    if (!autoClicker.value) return;
+    debouncedAutoClickerModule();
+}
+
+const onChangeAutoClickerConditions = async (values: string[]) => {
+    if (!autoClicker.value) return;
+
+    if (values.includes("blatan")) {
+        autoClickerSliderMax.value = BLATANT_MAX_CPS;
+    } else if (!values.includes("blatan") && autoClickerSliderMax.value === BLATANT_MAX_CPS) {
+        autoClickerSliderMax.value = NORMAL_MAX_CPS;
+        // Clamp value if needed
+        if (autoClickerValue.value > NORMAL_MAX_CPS) {
+            autoClickerValue.value = 12; // Reset to default safe value
+        }
+    }
+
+    await autoClickerModule();
+}
 </script>
 
 <template>
-    <CardModule module-text="auto clicker" icon="Mouse" :active-module="autoClicker"
+    <CardModule module-text="left clicker" icon="Mouse" :active-module="autoClicker"
         v-on:module-active="onActiveAutoClicker">
         <div class="space-y-6">
             <div>
@@ -114,7 +130,7 @@ const autoClickerModule = async () => {
                 <Slider :min="autoClickerSliderMin" :max="autoClickerSliderMax" v-model="autoClickerValue"
                     v-on:change="onChangeAutoClickerValue" />
             </div>
-            <SelectOptions v-model="autoClickerConditions" :options="autoClickerOptions"
+            <SelectOptions v-model="autoClickerConditions" :options="AUTO_CLICKER_OPTIONS"
                 :value-black-list="autoClickerValuesBlackList" v-on:change="onChangeAutoClickerConditions" />
         </div>
     </CardModule>

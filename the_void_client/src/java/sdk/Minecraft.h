@@ -628,6 +628,69 @@ namespace TheVoid {
 				Java::env->DeleteLocalRef(cls);
 				return result;
 			}
+
+			// [AGREGAR DENTRO DE class Minecraft : public]
+
+						// 1. Obtener Lista de Entidades (loadedEntityList)
+			jobject GetEntityList() {
+				jobject mc = GetInstance();
+				if (!mc) return nullptr;
+
+				// A. Obtener el Mundo (theWorld)
+				jobject world = GetFieldObject(xorstr("MC_theWorld"));
+				if (!world) { Java::env->DeleteLocalRef(mc); return nullptr; }
+
+				// B. Obtener la Lista (loadedEntityList)
+				jclass worldClass = Java::env->GetObjectClass(world);
+				jfieldID listFid = Java::env->GetFieldID(worldClass,
+					Java::Mapper::fields[xorstr("World_entityList")].c_str(),
+					"Ljava/util/List;" // Firma directa de List
+				);
+				Java::env->DeleteLocalRef(worldClass);
+
+				jobject list = nullptr;
+				if (listFid) {
+					list = Java::env->GetObjectField(world, listFid);
+				}
+
+				Java::env->DeleteLocalRef(world);
+				Java::env->DeleteLocalRef(mc);
+				return list;
+			}
+
+			// 2. Obtener Posición Exacta (GetEntityPos)
+			TheVoid::Vector3 GetEntityPos(jobject entity) {
+				if (!entity) return { 0, 0, 0 };
+
+				jclass cls = Java::env->GetObjectClass(entity);
+
+				// Usamos los campos que mapeamos en el Paso 1
+				jfieldID xId = Java::env->GetFieldID(cls, Java::Mapper::fields[xorstr("Entity_posX")].c_str(), "D");
+				jfieldID yId = Java::env->GetFieldID(cls, Java::Mapper::fields[xorstr("Entity_posY")].c_str(), "D");
+				jfieldID zId = Java::env->GetFieldID(cls, Java::Mapper::fields[xorstr("Entity_posZ")].c_str(), "D");
+
+				double x = 0, y = 0, z = 0;
+				if (xId) x = Java::env->GetDoubleField(entity, xId);
+				if (yId) y = Java::env->GetDoubleField(entity, yId);
+				if (zId) z = Java::env->GetDoubleField(entity, zId);
+
+				Java::env->DeleteLocalRef(cls);
+				return { x, y, z };
+			}
+
+			float GetEntityHeight(jobject entity) {
+				if (!entity) return 1.8f;
+				jclass cls = Java::env->GetObjectClass(entity);
+
+				// Mapeado como 'Entity_height'
+				jfieldID fid = Java::env->GetFieldID(cls, Java::Mapper::fields[xorstr("Entity_height")].c_str(), "F");
+
+				float h = 1.8f;
+				if (fid) h = Java::env->GetFloatField(entity, fid);
+
+				Java::env->DeleteLocalRef(cls);
+				return h;
+			}
 		};
 	}
 }

@@ -53,6 +53,8 @@ Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "the_void_server", "the_void
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "the_void_client", "the_void_client\the_void_client.vcxproj", "{A39904FE-67E2-4A67-AD3D-35CD72D7ADB5}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "the_void_clicker", "the_void_clicker\the_void_clicker.vcxproj", "{120EA547-2EC4-461E-8D99-E9FAC368E61D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -135,6 +137,18 @@ Global
 		{A39904FE-67E2-4A67-AD3D-35CD72D7ADB5}.Release|x64.Build.0 = Release|x64
 		{A39904FE-67E2-4A67-AD3D-35CD72D7ADB5}.Release|x86.ActiveCfg = Release|Win32
 		{A39904FE-67E2-4A67-AD3D-35CD72D7ADB5}.Release|x86.Build.0 = Release|Win32
+		{120EA547-2EC4-461E-8D99-E9FAC368E61D}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{120EA547-2EC4-461E-8D99-E9FAC368E61D}.Debug|Any CPU.Build.0 = Debug|x64
+		{120EA547-2EC4-461E-8D99-E9FAC368E61D}.Debug|x64.ActiveCfg = Debug|x64
+		{120EA547-2EC4-461E-8D99-E9FAC368E61D}.Debug|x64.Build.0 = Debug|x64
+		{120EA547-2EC4-461E-8D99-E9FAC368E61D}.Debug|x86.ActiveCfg = Debug|Win32
+		{120EA547-2EC4-461E-8D99-E9FAC368E61D}.Debug|x86.Build.0 = Debug|Win32
+		{120EA547-2EC4-461E-8D99-E9FAC368E61D}.Release|Any CPU.ActiveCfg = Release|x64
+		{120EA547-2EC4-461E-8D99-E9FAC368E61D}.Release|Any CPU.Build.0 = Release|x64
+		{120EA547-2EC4-461E-8D99-E9FAC368E61D}.Release|x64.ActiveCfg = Release|x64
+		{120EA547-2EC4-461E-8D99-E9FAC368E61D}.Release|x64.Build.0 = Release|x64
+		{120EA547-2EC4-461E-8D99-E9FAC368E61D}.Release|x86.ActiveCfg = Release|Win32
+		{120EA547-2EC4-461E-8D99-E9FAC368E61D}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

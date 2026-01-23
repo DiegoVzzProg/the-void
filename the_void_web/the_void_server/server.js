@@ -22,6 +22,9 @@ const start = async () => {
 
     await fastify.register(api, { prefix: "/api" });
 
+    // Global Error Handler
+    fastify.setErrorHandler(require("./src/utils/errorHandler"));
+
     fastify.register(async function (fastify) {
       fastify.get("/ws", { websocket: true }, handleConnection);
     });
@@ -29,7 +32,7 @@ const start = async () => {
     const PORT = process.env.PORT || 5010;
     await fastify.listen({ port: PORT, host: "0.0.0.0" });
 
-    console.log(`
+    fastify.log.info(`
       ====================================
       THE VOID - BACKEND
       API: http://127.0.0.1:${PORT}/api

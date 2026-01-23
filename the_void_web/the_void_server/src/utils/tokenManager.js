@@ -1,8 +1,11 @@
 const jwt = require("jsonwebtoken");
 // Secretos desde .env (¡NUNCA LOS SUBAS A GITHUB!)
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "VOID_ACCESS_KEY_@123";
-const REFRESH_SECRET =
-  process.env.JWT_REFRESH_SECRET || "VOID_REFRESH_KEY_#999";
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+
+if (!ACCESS_SECRET || !REFRESH_SECRET) {
+  throw new Error("FATAL: Missing JWT secrets in environment variables.");
+}
 
 const TokenManager = {
   /**

@@ -1,11 +1,10 @@
 const login = {
   body: {
     type: "object",
-    required: ["username", "password", "hwid"], // HWID obligatorio para login
+    required: ["email", "password"],
     properties: {
-      username: { type: "string" },
+      email: { type: "string" },
       password: { type: "string" },
-      hwid: { type: "string", minLength: 5 }, // Un HWID real es largo
     },
   },
 };

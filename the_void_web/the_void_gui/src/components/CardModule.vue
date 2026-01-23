@@ -55,18 +55,18 @@ const ToolTip = () => {
 </script>
 
 <template>
-    <div class="group relative flex flex-col w-full min-h-[420px] rounded-2xl border transition-all duration-500 overflow-hidden"
+    <div class="group relative flex flex-col w-full min-h-[420px] max-h-[420px] rounded-2xl border transition-all duration-500 overflow-hidden"
         :class="[
             checkedModule
-                ? 'bg-[#0c0c12]/80 border-[#6366f1]/50 shadow-[0_0_30px_-10px_rgba(99,102,241,0.15)]'
+                ? 'bg-[#0c0c12]/80 chroma-border chroma-glow'
                 : 'bg-[#0c0c12]/60 border-[#232732] hover:border-white/20'
         ]">
         <div class="flex justify-between items-center p-5 border-b transition-colors duration-300"
-            :class="checkedModule ? 'border-[#6366f1]/20 bg-[#6366f1]/5' : 'border-white/5 bg-transparent'">
+            :class="checkedModule ? 'border-indigo-500/20 bg-indigo-500/5' : 'border-white/5 bg-transparent'">
 
             <div class="flex items-center gap-4">
                 <div class="p-2.5 rounded-lg border transition-all duration-300"
-                    :class="checkedModule ? 'bg-[#6366f1] border-[#6366f1] text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-[#18181b] border-white/10 text-zinc-500'">
+                    :class="checkedModule ? 'chroma-bg border-transparent text-white shadow-lg' : 'bg-[#18181b] border-white/10 text-zinc-500'">
                     <component :is="getIcon(props.icon)" :size="20" />
                 </div>
                 <span class="font-medium tracking-wide text-sm uppercase"
@@ -75,7 +75,7 @@ const ToolTip = () => {
                 </span>
                 <button v-if="props.moduleInfo" v-on:click="ToolTip">
                     <CircleQuestionMark class="size-4"
-                        :class="checkedModule ? 'stroke-[#6366f1] shadow-[0_0_15px_rgba(99,102,241,0.5)] rounded-full' : 'stroke-zinc-500'" />
+                        :class="checkedModule ? 'stroke-indigo-400 chroma-text shadow-[0_0_15px_rgba(99,102,241,0.5)] rounded-full' : 'stroke-zinc-500'" />
                 </button>
             </div>
 
@@ -106,6 +106,88 @@ const ToolTip = () => {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #52525b;
 }
+
+/* --- CHROMA EFFECT (Blue-Purple Only) --- */
+@keyframes void-chroma {
+    0% {
+        border-color: rgba(99, 102, 241, 0.5);
+        /* Indigo-500 */
+        box-shadow: 0 0 30px -10px rgba(99, 102, 241, 0.15);
+    }
+
+    33% {
+        border-color: rgba(139, 92, 246, 0.5);
+        /* Violet-500 */
+        box-shadow: 0 0 30px -10px rgba(139, 92, 246, 0.15);
+    }
+
+    66% {
+        border-color: rgba(59, 130, 246, 0.5);
+        /* Blue-500 */
+        box-shadow: 0 0 30px -10px rgba(59, 130, 246, 0.15);
+    }
+
+    100% {
+        border-color: rgba(99, 102, 241, 0.5);
+        /* Indigo-500 */
+        box-shadow: 0 0 30px -10px rgba(99, 102, 241, 0.15);
+    }
+}
+
+@keyframes void-chroma-bg {
+    0% {
+        background-color: #6366f1;
+    }
+
+    /* Indigo */
+    33% {
+        background-color: #8b5cf6;
+    }
+
+    /* Violet */
+    66% {
+        background-color: #3b82f6;
+    }
+
+    /* Blue */
+    100% {
+        background-color: #6366f1;
+    }
+}
+
+@keyframes void-chroma-text {
+    0% {
+        stroke: #6366f1;
+    }
+
+    33% {
+        stroke: #8b5cf6;
+    }
+
+    66% {
+        stroke: #3b82f6;
+    }
+
+    100% {
+        stroke: #6366f1;
+    }
+}
+
+.chroma-border {
+    animation: void-chroma 6s infinite linear;
+    /* Smooth 6s cycle */
+    border-width: 1px;
+    border-style: solid;
+}
+
+.chroma-bg {
+    animation: void-chroma-bg 6s infinite linear;
+}
+
+.chroma-text {
+    animation: void-chroma-text 6s infinite linear;
+}
+
 
 /* --- Estilos del Modal (La tarjeta oscura) --- */
 .void-modal {

@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<{
             the void
         </span>
         <span v-if="!props.sloganHidde" class="text-[12px] text-[#64748B] google-sans-code select-none">
-            web_client v1.0
+            web_client v0.1
         </span>
     </div>
 </template>

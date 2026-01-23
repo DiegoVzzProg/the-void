@@ -26,3 +26,9 @@ export interface IAimAssist {
   strafe_assist_value: number;
   conditions: string[];
 }
+
+export interface IRightClicker {
+  action: Action;
+  cps: number;
+  conditions: string[];
+}
