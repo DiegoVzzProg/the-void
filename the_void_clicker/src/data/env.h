@@ -11,13 +11,13 @@ typedef jint(JNICALL* tJNI_GetCreatedJavaVMs)(JavaVM**, jsize, jsize*);
 
 namespace Java {
 	class CEnv {
-	private:
+	public:
+		inline static JNIEnv* env = nullptr;
 		inline static HWND GameWindow = nullptr;
 		inline static JavaVM* vm = nullptr;
-		inline static JNIEnv* env = nullptr;
 		inline static bool initialized = false;
 		inline static jobject ClassLoaderObj = nullptr;
-	public:
+
         static bool Init();
 
         static bool EnsureAttached();
