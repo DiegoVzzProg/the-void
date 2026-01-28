@@ -1,6 +1,12 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <iostream>
+#include "../../Mapper.h"
+#include "../../../../env.h"
+#include "../../../../utils/javautils.h"
+#include "../../../../../dll/debug.h"
 
 
 namespace Helper {

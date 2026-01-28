@@ -1,24 +1,27 @@
 #include "env.h"
 
 namespace Java {
-	bool CEnv::Init() {
+
+    bool CEnv::Init() {
+        // Obtenemos el handle de jvm.dll
         HMODULE hJvm = GetModuleHandleA(xorstr("jvm.dll"));
         if (!hJvm) return false;
 
-        // 2. Obtenemos la dirección de la función JNI_GetCreatedJavaVMs
+        // Obtenemos la dirección de JNI_GetCreatedJavaVMs
         tJNI_GetCreatedJavaVMs pJNI_GetCreatedJavaVMs =
             (tJNI_GetCreatedJavaVMs)GetProcAddress(hJvm, xorstr("JNI_GetCreatedJavaVMs"));
 
         if (!pJNI_GetCreatedJavaVMs) return false;
 
-        // 3. Le pedimos a la JVM que nos dé su puntero
+        // Le pedimos a la JVM que nos dé su puntero
         jsize vmCount;
+        // Nota: 'vm' ahora es una variable de la clase, no necesitamos CEnv::vm
         if (pJNI_GetCreatedJavaVMs(&vm, 1, &vmCount) != JNI_OK || vmCount == 0) {
             return false;
         }
 
         return true;
-	}
+    }
 
     bool CEnv::EnsureAttached() {
         if (!vm) return false;
@@ -44,36 +47,36 @@ namespace Java {
     }
 
     void CEnv::FixClassLoader() {
-        if (!CEnv::env) return;
-        JNIEnv* env = CEnv::env;
+        // Usamos 'env' de la instancia
+        if (!env) return;
 
-        std::cout << "[THE VOID] Arreglando ClassLoader..." << std::endl;
+        LOG_INFO(xorstr("[THE VOID] Arreglando ClassLoader..."));
 
         // 1. Obtener la clase Thread
-        jclass threadCls = env->FindClass("java/lang/Thread");
+        jclass threadCls = env->FindClass(xorstr("java/lang/Thread"));
 
-        // 2. Obtener el método estático 'getAllStackTraces' (Nos da un mapa de todos los hilos)
-        jmethodID getAllStackTracesMid = env->GetStaticMethodID(threadCls, "getAllStackTraces", "()Ljava/util/Map;");
+        // 2. Obtener el método estático 'getAllStackTraces'
+        jmethodID getAllStackTracesMid = env->GetStaticMethodID(threadCls, xorstr("getAllStackTraces"), xorstr("()Ljava/util/Map;"));
         jobject mapObj = env->CallStaticObjectMethod(threadCls, getAllStackTracesMid);
 
-        // 3. Obtener el Set de llaves (los hilos) del mapa
+        // 3. Obtener el Set de llaves
         jclass mapCls = env->GetObjectClass(mapObj);
-        jmethodID keySetMid = env->GetMethodID(mapCls, "keySet", "()Ljava/util/Set;");
+        jmethodID keySetMid = env->GetMethodID(mapCls, xorstr("keySet"), xorstr("()Ljava/util/Set;"));
         jobject setObj = env->CallObjectMethod(mapObj, keySetMid);
 
         // 4. Iterar sobre el Set
         jclass setCls = env->GetObjectClass(setObj);
-        jmethodID iteratorMid = env->GetMethodID(setCls, "iterator", "()Ljava/util/Iterator;");
+        jmethodID iteratorMid = env->GetMethodID(setCls, xorstr("iterator"), xorstr("()Ljava/util/Iterator;"));
         jobject iteratorObj = env->CallObjectMethod(setObj, iteratorMid);
 
         jclass iteratorCls = env->GetObjectClass(iteratorObj);
-        jmethodID hasNextMid = env->GetMethodID(iteratorCls, "hasNext", "()Z");
-        jmethodID nextMid = env->GetMethodID(iteratorCls, "next", "()Ljava/lang/Object;");
+        jmethodID hasNextMid = env->GetMethodID(iteratorCls, xorstr("hasNext"), xorstr("()Z"));
+        jmethodID nextMid = env->GetMethodID(iteratorCls, xorstr("next"), xorstr("()Ljava/lang/Object;"));
 
-        jmethodID getNameMid = env->GetMethodID(threadCls, "getName", "()Ljava/lang/String;");
-        jmethodID getContextClassLoaderMid = env->GetMethodID(threadCls, "getContextClassLoader", "()Ljava/lang/ClassLoader;");
-        jmethodID setContextClassLoaderMid = env->GetMethodID(threadCls, "setContextClassLoader", "(Ljava/lang/ClassLoader;)V");
-        jmethodID currentThreadMid = env->GetStaticMethodID(threadCls, "currentThread", "()Ljava/lang/Thread;");
+        jmethodID getNameMid = env->GetMethodID(threadCls, xorstr("getName"), xorstr("()Ljava/lang/String;"));
+        jmethodID getContextClassLoaderMid = env->GetMethodID(threadCls, xorstr("getContextClassLoader"), xorstr("()Ljava/lang/ClassLoader;"));
+        jmethodID setContextClassLoaderMid = env->GetMethodID(threadCls, xorstr("setContextClassLoader"), xorstr("(Ljava/lang/ClassLoader;)V"));
+        jmethodID currentThreadMid = env->GetStaticMethodID(threadCls, xorstr("currentThread"), xorstr("()Ljava/lang/Thread;"));
 
         bool found = false;
 
@@ -86,20 +89,21 @@ namespace Java {
             std::string name(nameChars);
             env->ReleaseStringUTFChars(nameStr, nameChars);
 
-            // BUSCAMOS EL HILO PRINCIPAL: "Client thread" (Vanilla/Forge) o "main"
-            if (name == "Client thread" || name == "main") { // main es para Lunar a veces
-                std::cout << "[THE VOID] Hilo Principal Encontrado: " << name << std::endl;
+            // BUSCAMOS EL HILO PRINCIPAL
+            if (name == xorstr("Client thread") || name == xorstr("main")) {
+                
+                LOG_INFO(xorstr("[THE VOID] Hilo Principal Encontrado: ") + name);
 
                 // 1. Obtener el ClassLoader del juego
                 jobject loader = env->CallObjectMethod(threadObj, getContextClassLoaderMid);
 
-                // 2. GUARDARLO GLOBALMENTE (Esto es lo que faltaba)
+                // 2. GUARDARLO GLOBALMENTE EN LA INSTANCIA
                 if (loader) {
                     ClassLoaderObj = env->NewGlobalRef(loader);
-                    std::cout << "[THE VOID] ClassLoader CAPTURADO y guardado." << std::endl;
+                    LOG_INFO(xorstr("[THE VOID] ClassLoader CAPTURADO y guardado."));
                 }
 
-                // 3. Asignarlo al hilo actual (por si acaso ayuda en algo)
+                // 3. Asignarlo al hilo actual
                 jobject currentThreadObj = env->CallStaticObjectMethod(threadCls, currentThreadMid);
                 env->CallVoidMethod(currentThreadObj, setContextClassLoaderMid, loader);
 
@@ -112,10 +116,10 @@ namespace Java {
         }
 
         if (!found) {
-            std::cout << "[ERROR FATAL] No se encontro el 'Client thread'. El ClassLoader seguira roto." << std::endl;
+            LOG_ERROR(xorstr("[ERROR FATAL] No se encontro el 'Client thread'. El ClassLoader seguira roto."));
         }
 
-        // Limpieza masiva (Importante)
+        // Limpieza masiva
         env->DeleteLocalRef(threadCls);
         env->DeleteLocalRef(mapObj);
         env->DeleteLocalRef(mapCls);
@@ -123,5 +127,14 @@ namespace Java {
         env->DeleteLocalRef(setCls);
         env->DeleteLocalRef(iteratorObj);
         env->DeleteLocalRef(iteratorCls);
+    }
+
+    void CEnv::Cleanup() {
+        // Limpiamos la referencia global usando el 'env' actual
+        if (env && ClassLoaderObj) {
+            env->DeleteGlobalRef(ClassLoaderObj);
+            ClassLoaderObj = nullptr;
+            LOG_INFO(xorstr("[THE VOID] CEnv Limpiado."));
+        }
     }
 }

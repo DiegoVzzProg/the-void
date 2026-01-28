@@ -1,21 +1,9 @@
-﻿#include <iostream>
-#include "./helpers/basic/helperBasic.h"
-#include "./helpers/expert/helperExpert.h"
-#include "../../env.h"
-#include "../../utils/JavaUtils.h"
-
-#include "Mapper.h"
+﻿#include "Mapper.h"
  
 namespace Java {
-    std::unordered_map<std::string, std::string> Mapper::classes;
-    std::unordered_map<std::string, std::string> Mapper::methods;
-    std::unordered_map<std::string, std::string> Mapper::fields;
-    std::unordered_map<std::string, std::string> Mapper::fieldSigs;
-    std::unordered_map<std::string, std::string> Mapper::methodSigs;
-    std::unordered_map<std::string, jclass> Mapper::classCache;
 
-    bool Mapper::LearnAndCheck(jobject obj, std::string cacheKey, std::vector<std::string> searchPatterns) {
-        if (!Java::CEnv::env || !obj) return false;
+    bool CMapper::LearnAndCheck(jobject obj, std::string cacheKey, std::vector<std::string> searchPatterns) {
+        if (!Java::CEnv::Get().env || !obj) return false;
 
         // 1. CACHE HIT (Ruta Rápida)
         // Si ya aprendimos qué es esto, usamos IsInstanceOf (Nativo y veloz)
@@ -33,16 +21,16 @@ namespace Java {
             // .find() para Forge/Lunar (nombres largos), == para Vanilla (nombres cortos)
             if (realName.find(pattern) != std::string::npos || realName == pattern) {
 
-                std::cout << "[MAPPER] Aprendido: " << cacheKey << " (" << pattern << ") detectado como -> " << realName << std::endl;
+                LOG_INFO(xorstr("[MAPPER] Aprendido: ") + cacheKey + xorstr(" (") + pattern + xorstr(") detectado como -> ") + realName);
 
                 // IMPORTANTE: Convertir a GlobalRef para que no se borre
-                jclass localCls = Java::CEnv::env->GetObjectClass(obj);
-                jclass globalCls = (jclass)Java::CEnv::env->NewGlobalRef(localCls);
+                jclass localCls = Java::CEnv::Get().env->GetObjectClass(obj);
+                jclass globalCls = (jclass)Java::CEnv::Get().env->NewGlobalRef(localCls);
 
                 // Guardar en Caché
                 classCache[cacheKey] = globalCls;
 
-                Java::CEnv::env->DeleteLocalRef(localCls);
+                Java::CEnv::Get().env->DeleteLocalRef(localCls);
                 return true;
             }
         }
@@ -51,7 +39,7 @@ namespace Java {
 
     // En Mapper.cpp
 
-    void Mapper::FindRealMOPClass() {
+    void CMapper::FindRealMOPClass() {
         // 1. Obtener clase Minecraft
         std::string mcName = classes[xorstr("Minecraft")];
         jclass mcClass = Utils::FindClass(mcName.c_str());
@@ -64,51 +52,54 @@ namespace Java {
             std::string(xorstr("objectMouseOver"))
         };
 
-        jclass classClass = Java::CEnv::env->GetObjectClass(mcClass);
-        jmethodID getDeclaredField = Java::CEnv::env->GetMethodID(classClass, "getDeclaredField", "(Ljava/lang/String;)Ljava/lang/reflect/Field;");
-        jclass fieldClass = Java::CEnv::env->FindClass("java/lang/reflect/Field");
-        jmethodID getType = Java::CEnv::env->GetMethodID(fieldClass, "getType", "()Ljava/lang/Class;");
-        jclass classOfClass = Java::CEnv::env->FindClass("java/lang/Class");
-        jmethodID getName = Java::CEnv::env->GetMethodID(classOfClass, "getName", "()Ljava/lang/String;");
+        jclass classClass = Java::CEnv::Get().env->GetObjectClass(mcClass);
+        jmethodID getDeclaredField = Java::CEnv::Get().env->GetMethodID(classClass, xorstr("getDeclaredField"), xorstr("(Ljava/lang/String;)Ljava/lang/reflect/Field;"));
+        jclass fieldClass = Java::CEnv::Get().env->FindClass(xorstr("java/lang/reflect/Field"));
+        jmethodID getType = Java::CEnv::Get().env->GetMethodID(fieldClass, xorstr("getType"), xorstr("()Ljava/lang/Class;"));
+        jclass classOfClass = Java::CEnv::Get().env->FindClass(xorstr("java/lang/Class"));
+        jmethodID getName = Java::CEnv::Get().env->GetMethodID(classOfClass, xorstr("getName"), xorstr("()Ljava/lang/String;"));
 
         for (const auto& fieldName : candidates) {
-            jstring nameStr = Java::CEnv::env->NewStringUTF(fieldName.c_str());
-            jobject fieldObj = Java::CEnv::env->CallObjectMethod(mcClass, getDeclaredField, nameStr);
-            Java::CEnv::env->DeleteLocalRef(nameStr);
-            Java::CEnv::env->ExceptionClear();
+            jstring nameStr = Java::CEnv::Get().env->NewStringUTF(fieldName.c_str());
+            jobject fieldObj = Java::CEnv::Get().env->CallObjectMethod(mcClass, getDeclaredField, nameStr);
+            Java::CEnv::Get().env->DeleteLocalRef(nameStr);
+            Java::CEnv::Get().env->ExceptionClear();
 
             if (fieldObj) {
                 // ¡Eureka! Encontramos el campo. ¿De qué clase es?
-                jobject typeObj = Java::CEnv::env->CallObjectMethod(fieldObj, getType);
-                jstring typeNameStr = (jstring)Java::CEnv::env->CallObjectMethod(typeObj, getName);
-                const char* typeNameChars = Java::CEnv::env->GetStringUTFChars(typeNameStr, 0);
+                jobject typeObj = Java::CEnv::Get().env->CallObjectMethod(fieldObj, getType);
+                jstring typeNameStr = (jstring)Java::CEnv::Get().env->CallObjectMethod(typeObj, getName);
+                const char* typeNameChars = Java::CEnv::Get().env->GetStringUTFChars(typeNameStr, 0);
                 std::string realMOPClass(typeNameChars);
-                Java::CEnv::env->ReleaseStringUTFChars(typeNameStr, typeNameChars);
+                Java::CEnv::Get().env->ReleaseStringUTFChars(typeNameStr, typeNameChars);
 
-                std::cout << "[MAPPER DETECTIVE] MovingObjectPosition corregido: " << classes[xorstr("MovingObjectPosition")] << " -> " << realMOPClass << std::endl;
+                LOG_INFO(xorstr("[MAPPER DETECTIVE] MovingObjectPosition corregido: ") + classes[xorstr("MovingObjectPosition")] + xorstr(" -> ") + realMOPClass);
 
                 // CORREGIMOS EL MAPPER
                 classes[xorstr("MovingObjectPosition")] = realMOPClass;
                 // Asumimos que el Enum está dentro (Clase$a o Clase$MovingObjectType)
-                classes[xorstr("MovingObjectType")] = realMOPClass + "$MovingObjectType";
+                classes[xorstr("MovingObjectType")] = realMOPClass + xorstr("$MovingObjectType");
 
-                Java::CEnv::env->DeleteLocalRef(typeObj);
-                Java::CEnv::env->DeleteLocalRef(fieldObj);
+                Java::CEnv::Get().env->DeleteLocalRef(typeObj);
+                Java::CEnv::Get().env->DeleteLocalRef(fieldObj);
                 break;
             }
         }
-        Java::CEnv::env->DeleteLocalRef(classClass);
-        Java::CEnv::env->DeleteLocalRef(fieldClass);
-        Java::CEnv::env->DeleteLocalRef(classOfClass);
-        Java::CEnv::env->DeleteLocalRef(mcClass);
-        Java::CEnv::env->ExceptionClear();
+        Java::CEnv::Get().env->DeleteLocalRef(classClass);
+        Java::CEnv::Get().env->DeleteLocalRef(fieldClass);
+        Java::CEnv::Get().env->DeleteLocalRef(classOfClass);
+        Java::CEnv::Get().env->DeleteLocalRef(mcClass);
+        Java::CEnv::Get().env->ExceptionClear();
     }
 
-    void Mapper::Init() {
-        std::cout << "[MAPPER] Inicializando Mapeo Estatico..." << std::endl;
+    void CMapper::Init() {
+        LOG_INFO(xorstr("[MAPPER] Inicializando Mapeo Estatico..."));
 
-        // 1. CLASES
-        Helper::Basic::ResolveClass(xorstr("Minecraft"), { xorstr("ave"), xorstr("net/minecraft/client/Minecraft") }); // , xorstr("net.minecraft.client.Minecraft")
+        Helper::Basic::ResolveClass(xorstr("GameSettings"), {
+            xorstr("net/minecraft/client/settings/GameSettings"),
+            xorstr("avh")
+        });
+        Helper::Basic::ResolveClass(xorstr("Minecraft"), { xorstr("ave"), xorstr("net/minecraft/client/Minecraft") });
         Helper::Basic::ResolveClass(xorstr("EntityPlayerSP"), { xorstr("bew"), xorstr("bud"), xorstr("biz"), xorstr("net/minecraft/client/entity/EntityPlayerSP") });
 
         Helper::Basic::ResolveClass(xorstr("MovingObjectType"), { xorstr("auu$a"), xorstr("net/minecraft/util/MovingObjectPosition$MovingObjectType") });
@@ -123,13 +114,35 @@ namespace Java {
         Helper::Basic::ResolveClass(xorstr("ItemSword"), { xorstr("net/minecraft/item/ItemSword"), xorstr("zy") });
         Helper::Basic::ResolveClass(xorstr("ItemAxe"), { xorstr("net/minecraft/item/ItemAxe"), xorstr("za") });
         Helper::Basic::ResolveClass(xorstr("Entity"), { xorstr("pk"), xorstr("net/minecraft/entity/Entity") });
-        Helper::Basic::ResolveClass(std::string(xorstr("EntityLivingBase")), { std::string(xorstr("pr")), std::string(xorstr("net/minecraft/entity/EntityLivingBase")) });
-        Helper::Basic::ResolveClass(xorstr("WorldClient"), { xorstr("net/minecraft/client/multiplayer/WorldClient"), xorstr("cen") });
-
+        Helper::Basic::ResolveClass(xorstr("EntityLivingBase"), { xorstr("pr"), xorstr("net/minecraft/entity/EntityLivingBase") });
+        Helper::Basic::ResolveClass(xorstr("WorldClient"), { xorstr("net/minecraft/client/multiplayer/WorldClient"), xorstr("bdb"), xorstr("cen") });
+        Helper::Basic::ResolveClass(xorstr("KeyBinding"), { xorstr("net/minecraft/client/settings/KeyBinding"), xorstr("avb") });
         FindRealMOPClass();
 
         // Fields
         {
+            Helper::Expert::ResolveFieldGeneric(
+                xorstr("GameSettings"),
+                xorstr("keyBindUseItem"), 
+                { xorstr("keyBindUseItem"), xorstr("ap") },
+                xorstr("KeyBinding")
+            );
+
+            Helper::Expert::ResolveFieldGeneric(
+                xorstr("GameSettings"),
+                xorstr("keyBindAttack"),
+                { xorstr("keyBindAttack"), xorstr("aq") },
+                xorstr("KeyBinding")
+            );
+
+
+            Helper::Expert::ResolveFieldGeneric(
+                xorstr("KeyBinding"),
+                xorstr("pressed"),
+                { xorstr("pressed"), xorstr("i") },
+                xorstr("Z") 
+            );
+
             Helper::Expert::ResolveFieldGeneric(xorstr("EntityPlayer"), xorstr("Player_inventory"),
                 { xorstr("bi"), xorstr("inventory"), xorstr("field_71071_by") });
 
@@ -157,12 +170,12 @@ namespace Java {
                 xorstr("EntityLivingBase"),
                 xorstr("ELB_hurtTime"),
                 { xorstr("hurtTime"), xorstr("au"), xorstr("field_70737_aN") },
-                "int"
+                xorstr("int")
             );
-            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationYaw"), { xorstr("rotationYaw"), xorstr("y") }, "F");
-            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationPitch"), { xorstr("rotationPitch"), xorstr("z") }, "F");
-            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_width"), { xorstr("width"), xorstr("f") }, "F");
-            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_height"), { xorstr("height"), xorstr("g") }, "F");
+            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationYaw"), { xorstr("rotationYaw"), xorstr("y") }, xorstr("F"));
+            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationPitch"), { xorstr("rotationPitch"), xorstr("z") }, xorstr("F"));
+            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_width"), { xorstr("width"), xorstr("f") }, xorstr("F"));
+            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_height"), { xorstr("height"), xorstr("g") }, xorstr("F"));
             Helper::Expert::ResolveFieldGeneric(
                 xorstr("MovingObjectPosition"),
                 xorstr("MOP_typeOfHit"),
@@ -170,23 +183,23 @@ namespace Java {
                 xorstr("MovingObjectType")
             );
 
-            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_posX"), { xorstr("posX"), xorstr("s") }, "D");
-            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_posY"), { xorstr("posY"), xorstr("t") }, "D");
-            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_posZ"), { xorstr("posZ"), xorstr("u") }, "D");
+            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_posX"), { xorstr("posX"), xorstr("s") }, xorstr("D"));
+            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_posY"), { xorstr("posY"), xorstr("t") }, xorstr("D"));
+            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_posZ"), { xorstr("posZ"), xorstr("u") }, xorstr("D"));
 
             Helper::Expert::ResolveFieldGeneric(xorstr("Minecraft"), xorstr("MC_theWorld"), { xorstr("theWorld"), xorstr("f") }, xorstr("WorldClient"));
-            Helper::Expert::ResolveFieldGeneric(xorstr("WorldClient"), xorstr("World_entityList"), { xorstr("loadedEntityList"), xorstr("k") }, "java/util/List");
+            Helper::Expert::ResolveFieldGeneric(
+                xorstr("WorldClient"),
+                xorstr("World_entityList"),
+                {
+                  xorstr("loadedEntityList"),
+                  xorstr("k"),
+                  xorstr("field_72996_f") 
+                },
+                xorstr("java/util/List")
+            );
         }
 
-
-        // [Mapper.cpp -> Init()]
-
-        // --- 1. GAME SETTINGS (Sensibilidad) ---
-        // La clase GameSettings. En 1.8 vanilla es 'avh'
-        Helper::Basic::ResolveClass(xorstr("GameSettings"), {
-            xorstr("net/minecraft/client/settings/GameSettings"),
-            xorstr("avh")
-            });
 
         // El campo 'gameSettings' dentro de Minecraft
         Helper::Expert::ResolveFieldGeneric(xorstr("Minecraft"), xorstr("MC_gameSettings"), {
@@ -197,18 +210,18 @@ namespace Java {
         Helper::Expert::ResolveFieldGeneric(xorstr("GameSettings"), xorstr("GS_mouseSensitivity"), {
             xorstr("mouseSensitivity"),
             xorstr("a")
-            }, "F");
+            }, xorstr("F"));
 
         // --- 2. ENTITY ROTATIONS & EYES ---
         // Rotaciones (Yaw/Pitch)
-        Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationYaw"), { xorstr("rotationYaw"), xorstr("y") }, "F");
-        Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationPitch"), { xorstr("rotationPitch"), xorstr("z") }, "F");
+        Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationYaw"), { xorstr("rotationYaw"), xorstr("y") }, xorstr("F"));
+        Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationPitch"), { xorstr("rotationPitch"), xorstr("z") }, xorstr("F"));
 
         // Altura de los ojos (Para apuntar a la cabeza, no a los pies)
-        Helper::Expert::ResolveMethodGeneric(xorstr("Entity"), xorstr("Entity_getEyeHeight"), { xorstr("getEyeHeight"), xorstr("aR") }, "()F");
+        Helper::Expert::ResolveMethodGeneric(xorstr("Entity"), xorstr("Entity_getEyeHeight"), { xorstr("getEyeHeight"), xorstr("aR") }, xorstr("()F"));
 
         // Visibilidad (RayTrace interno del juego - Opcional pero recomendado para Legit)
-        Helper::Expert::ResolveMethodGeneric(xorstr("Entity"), xorstr("Entity_canEntityBeSeen"), { xorstr("canEntityBeSeen"), xorstr("n") }, "(Lnet/minecraft/entity/Entity;)Z");
+        Helper::Expert::ResolveMethodGeneric(xorstr("Entity"), xorstr("Entity_canEntityBeSeen"), { xorstr("canEntityBeSeen"), xorstr("n") }, xorstr("(Lnet/minecraft/entity/Entity;)Z"));
 
         // Methods
         {
@@ -223,7 +236,7 @@ namespace Java {
             );
             Helper::Expert::ResolveMethodGeneric(xorstr("Minecraft"), xorstr("clickMouse"),
                 { xorstr("aw"), xorstr("av"), xorstr("clickMouse"), xorstr("func_147116_af") },
-                "void",
+                xorstr("void"),
                 0
             );
             Helper::Expert::ResolveMethodGeneric(xorstr("EntityPlayer"), xorstr("getHealth"),
@@ -233,11 +246,35 @@ namespace Java {
             );
             Helper::Expert::ResolveMethodGeneric(xorstr("Enum"), xorstr("ordinal"),
                 { xorstr("ordinal") },
-                "int",
+                xorstr("int"),
                 0
             );
         }
 
-        std::cout << "[MAPPER] Mapeo Estatico Completado. Sistema Dinamico Listo." << std::endl;
+        LOG_INFO(xorstr("[MAPPER] Mapeo Estatico Completado. Sistema Dinamico Listo."));
+    }
+
+    void CMapper::Cleanup() {
+        // CORRECCIN 1: Variable esttica para evitar doble ejecucin
+        static bool alreadyCleaned = false;
+        if (alreadyCleaned) return;
+        alreadyCleaned = true;
+
+        // CORRECCIN 2: Arreglamos el typo "Get().Get()" que tenas
+        if (!Java::CEnv::Get().env) return;
+
+        for (auto& pair : classCache) {
+            if (pair.second) {
+                Java::CEnv::Get().env->DeleteGlobalRef(pair.second);
+            }
+        }
+
+        classCache.clear();
+        classes.clear();
+        methods.clear();
+        fields.clear();
+
+        // Ahora este log es seguro porque ocurre en el paso 1 de Main.cpp
+        LOG_INFO(xorstr("[MAPPER] Memoria liberada correctamente."));
     }
 }
