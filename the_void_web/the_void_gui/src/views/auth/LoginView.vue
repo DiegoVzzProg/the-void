@@ -31,7 +31,7 @@ const handleRegister = async (formData: any) => {
 
         const data = res.data;
         useAuthStorage()
-            .saveToken("__voidAccessToken", data.accessToken, 60 * 15);
+            .saveToken("__voidAccessToken", data.accessToken, 60 * 60);
         useAuthStorage()
             .saveToken("__voidRefreshToken", data.refreshToken, 60 * 60 * 24 * 7);
 

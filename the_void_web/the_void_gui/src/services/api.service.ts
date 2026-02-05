@@ -61,10 +61,12 @@ export class Api {
         if (!response) return Promise.reject(error);
 
         // 2. Verificamos si es 401 y si NO es un reintento (para evitar bucles infinitos)
+        // También evitamos reintentar si la URL fallida ES la de refresh-token (para evitar loop infinito)
         if (
           response.status === 401 &&
           originalRequest &&
-          !(originalRequest as any)._retry
+          !(originalRequest as any)._retry &&
+          !originalRequest.url?.includes("refresh-token")
         ) {
           // Marcamos esta petición como "ya reintentada"
           (originalRequest as any)._retry = true;
@@ -126,26 +128,28 @@ export class Api {
       };
 
       let axiosResponse: IApiResponse;
+      const config = { headers: header };
+
       switch (https.method) {
         case "GET":
-          axiosResponse = await Api.axios.get(https.endpoint, header);
+          axiosResponse = await Api.axios.get(https.endpoint, config);
           break;
         case "POST":
           axiosResponse = await Api.axios.post(
             https.endpoint,
             https.body,
-            header
+            config
           );
           break;
         case "PUT":
           axiosResponse = await Api.axios.put(
             https.endpoint,
             https.body,
-            header
+            config
           );
           break;
         case "DELETE":
-          axiosResponse = await Api.axios.delete(https.endpoint, header);
+          axiosResponse = await Api.axios.delete(https.endpoint, config);
           break;
       }
 

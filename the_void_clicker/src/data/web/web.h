@@ -2,7 +2,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
-
+#include <map>
 #ifndef IXWEBSOCKET_STATIC
 #define IXWEBSOCKET_STATIC
 #endif
@@ -28,7 +28,8 @@ namespace Online {
 
 		ix::WebSocket clientSocket;
 		std::mutex candado;
-		json module_manager_value = nullptr;
+
+		std::map<std::string, json> module_cache;
 		bool is_new_command = false;
 
 		std::vector<std::string> cached_conditions;
@@ -43,13 +44,13 @@ namespace Online {
 
 		void Init();
 		void CleanUp();
-		void AcknowledgeCommand();
-		
-		bool ItIsTheModule(std::string key);
-		bool ModuleActivated();
-		bool ActivatedCondition(std::string key);
+		// Verifica si un módulo específico está encendido en el cache
+		bool IsModuleActive(std::string moduleName);
 
-		json GetValue(std::string key);
-		json GetModuleValue(std::string key);
+		// Verifica si una condición (checkbox) está activa en un módulo
+		bool ActivatedCondition(std::string moduleName, std::string conditionKey);
+
+		// Obtiene un valor numérico/bool de los settings de un módulo
+		json GetValue(std::string moduleName, std::string settingKey);
 	};
 }

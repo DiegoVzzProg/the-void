@@ -6,5 +6,6 @@ namespace Feature {
 		Left::Clicker::Get().Activate();
 		Left::Clicker::Get().AutoBlockHit();
 
+		Combat::AimAssist::Get().Activate();
 	}
 }

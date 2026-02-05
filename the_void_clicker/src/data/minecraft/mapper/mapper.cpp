@@ -114,8 +114,9 @@ namespace Java {
         Helper::Basic::ResolveClass(xorstr("ItemSword"), { xorstr("net/minecraft/item/ItemSword"), xorstr("zy") });
         Helper::Basic::ResolveClass(xorstr("ItemAxe"), { xorstr("net/minecraft/item/ItemAxe"), xorstr("za") });
         Helper::Basic::ResolveClass(xorstr("Entity"), { xorstr("pk"), xorstr("net/minecraft/entity/Entity") });
-        Helper::Basic::ResolveClass(xorstr("EntityLivingBase"), { xorstr("pr"), xorstr("net/minecraft/entity/EntityLivingBase") });
+        Helper::Basic::ResolveClass(xorstr("EntityLivingBase"), { xorstr("net/minecraft/entity/EntityLivingBase"), xorstr("pr") });
         Helper::Basic::ResolveClass(xorstr("WorldClient"), { xorstr("net/minecraft/client/multiplayer/WorldClient"), xorstr("bdb"), xorstr("cen") });
+        Helper::Basic::ResolveClass(xorstr("World"), { xorstr("net/minecraft/world/World"), xorstr("adm") });
         Helper::Basic::ResolveClass(xorstr("KeyBinding"), { xorstr("net/minecraft/client/settings/KeyBinding"), xorstr("avb") });
         FindRealMOPClass();
 
@@ -165,15 +166,25 @@ namespace Java {
                 xorstr("Entity")
             );
 
+            Helper::Expert::ResolveFieldGeneric(
+                xorstr("EntityLivingBase"),
+                xorstr("ELB_swingProgress"),
+                { xorstr("swingProgress"), xorstr("bw") },
+                xorstr("F") // F significa que es un Float
+            );;
 
             Helper::Expert::ResolveFieldGeneric(
                 xorstr("EntityLivingBase"),
                 xorstr("ELB_hurtTime"),
-                { xorstr("hurtTime"), xorstr("au"), xorstr("field_70737_aN") },
+                { xorstr("hurtTime"), xorstr("au"), xorstr("field_70737_aN"), xorstr("maxHurtResistantTime") },
                 xorstr("int")
             );
-            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationYaw"), { xorstr("rotationYaw"), xorstr("y") }, xorstr("F"));
-            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationPitch"), { xorstr("rotationPitch"), xorstr("z") }, xorstr("F"));
+            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationYaw"), { xorstr("rotationYaw"), xorstr("y"), xorstr("yaw") }, xorstr("F"));
+            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationPitch"), { xorstr("rotationPitch"), xorstr("z"), xorstr("pitch") }, xorstr("F"));
+
+            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_prevRotationYaw"), { xorstr("prevRotationYaw"), xorstr("A"), xorstr("previousRotationYaw") }, xorstr("F"));
+            Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_prevRotationPitch"), { xorstr("prevRotationPitch"), xorstr("B"), xorstr("previousRotationPitch") }, xorstr("F"));
+
             Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_width"), { xorstr("width"), xorstr("f") }, xorstr("F"));
             Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_height"), { xorstr("height"), xorstr("g") }, xorstr("F"));
             Helper::Expert::ResolveFieldGeneric(
@@ -189,13 +200,9 @@ namespace Java {
 
             Helper::Expert::ResolveFieldGeneric(xorstr("Minecraft"), xorstr("MC_theWorld"), { xorstr("theWorld"), xorstr("f") }, xorstr("WorldClient"));
             Helper::Expert::ResolveFieldGeneric(
-                xorstr("WorldClient"),
+                xorstr("World"),
                 xorstr("World_entityList"),
-                {
-                  xorstr("loadedEntityList"),
-                  xorstr("k"),
-                  xorstr("field_72996_f") 
-                },
+                { xorstr("loadedEntityList"), xorstr("k") },
                 xorstr("java/util/List")
             );
         }

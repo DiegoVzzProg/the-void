@@ -78,6 +78,12 @@
     <ClInclude Include="src\data\modules\modules.h">
       <Filter>Archivos de encabezado</Filter>
     </ClInclude>
+    <ClInclude Include="src\data\modules\aimassist\aimassist.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data\utils\math.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\dll\dllmain.cpp">
@@ -111,6 +117,12 @@
       <Filter>Archivos de origen</Filter>
     </ClCompile>
     <ClCompile Include="src\data\modules\modules.cpp">
+      <Filter>Archivos de origen</Filter>
+    </ClCompile>
+    <ClCompile Include="src\data\modules\aimassist\aimassist.cpp">
+      <Filter>Archivos de origen</Filter>
+    </ClCompile>
+    <ClCompile Include="src\data\utils\math.cpp">
       <Filter>Archivos de origen</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,11 +1,11 @@
-// src/middlewares/authMiddleware.js
-const TokenManager = require("../utils/tokenManager");
+import { FastifyRequest, FastifyReply } from 'fastify';
+import TokenManager from '../utils/tokenManager';
 
 /**
  * Middleware para proteger rutas.
  * Verifica Token + HWID.
  */
-async function authenticate(req, reply) {
+async function authenticate(req: FastifyRequest, reply: FastifyReply) {
   try {
     // 1. Obtener el token del header "Authorization: Bearer <token>"
     const authHeader = req.headers.authorization;
@@ -31,6 +31,11 @@ async function authenticate(req, reply) {
       return reply.code(400).send({ error: "Missing HWID header" });
     }
 
+    // Type guard / Check if decoded is object and has hwid
+    if (typeof decoded === 'string' || !('hwid' in decoded)) {
+       return reply.code(401).send({ error: "Invalid token payload" });
+    }
+
     // Si el HWID del token no coincide con el de la petición actual...
     if (decoded.hwid !== currentHwid) {
       console.warn(
@@ -49,4 +54,4 @@ async function authenticate(req, reply) {
   }
 }
 
-module.exports = authenticate;
+export default authenticate;

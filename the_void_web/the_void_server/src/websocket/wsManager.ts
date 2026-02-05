@@ -1,18 +1,16 @@
-// src/websocket/wsManager.js
-const clients = new Map();
+import { FastifyRequest } from 'fastify';
+import WebSocket from 'ws';
 
-function handleConnection(connection, req) {
+const clients = new Map<string, WebSocket>();
+
+export function handleConnection(connection: any, req: FastifyRequest) {
   try {
     // --- CORRECCIÓN CRÍTICA ---
     // A veces Fastify entrega 'connection' como un wrapper { socket: ... }
     // y otras veces entrega el socket directo. Aquí detectamos cuál es.
-    let socket;
-
-    if (connection.socket) {
-      socket = connection.socket; // Es un wrapper (SocketStream)
-    } else {
-      socket = connection; // Es el socket directo (Raw WebSocket)
-    }
+    // Fastify-websocket siempre entrega un objeto SocketStream en 'connection'
+    // La propiedad .socket es el raw WebSocket de la librería 'ws'
+    const socket: WebSocket = connection.socket || connection;
 
     // Validación de seguridad para que no explote
     if (!socket || typeof socket.on !== "function") {
@@ -27,8 +25,7 @@ function handleConnection(connection, req) {
     const clientId = "GHOST_CLIENT_01";
 
     console.log(
-      `[WS DEBUG] Socket validado correctamente para IP: ${
-        req ? req.ip : "Desconocida"
+      `[WS DEBUG] Socket validado correctamente para IP: ${req ? req.ip : "Desconocida"
       }`
     );
 
@@ -36,9 +33,9 @@ function handleConnection(connection, req) {
     console.log(`[WS] Cliente registrado en memoria: ${clientId}`);
 
     // Manejador de Errores (Vital para estabilidad)
-    socket.on("error", (err) => console.error(`[WS ERROR] ${err.message}`));
+    socket.on("error", (err: Error) => console.error(`[WS ERROR] ${err.message}`));
 
-    socket.on("message", (msg) => {
+    socket.on("message", (msg: any) => {
       console.log(`[WS RECV] Mensaje del cliente: ${msg.toString()}`);
     });
 
@@ -47,19 +44,18 @@ function handleConnection(connection, req) {
       clients.delete(clientId);
     });
 
-    // Enviar bienvenida
-    // Usamos try-catch aquí también por si el socket no está listo
-    try {
-      //socket.send(JSON.stringify({ type: "WELCOME", msg: "Backend Listo" }));
-    } catch (sendErr) {
-      console.error("[WS WARN] No se pudo enviar bienvenida:", sendErr.message);
-    }
+    // // Enviar bienvenida
+    // try {
+    //   socket.send(JSON.stringify({ type: "WELCOME", msg: "Backend Listo" }));
+    // } catch (sendErr: any) {
+    //   console.error("[WS WARN] No se pudo enviar bienvenida:", sendErr.message);
+    // }
   } catch (err) {
     console.error("[WS FATAL] Error general en handleConnection:", err);
   }
 }
 
-function sendCommandToClient(commandData) {
+export function sendCommandToClient(commandData: any) {
   // Debug para ver si Postman funciona
   console.log(
     "[WS DEBUG] Intentando enviar comando. Clientes activos:",
@@ -68,7 +64,7 @@ function sendCommandToClient(commandData) {
 
   const socket = clients.get("GHOST_CLIENT_01");
 
-  if (socket && socket.readyState === 1) {
+  if (socket && socket.readyState === WebSocket.OPEN) { // 1 = OPEN
     socket.send(JSON.stringify(commandData));
     return true;
   }
@@ -76,5 +72,3 @@ function sendCommandToClient(commandData) {
   console.log("[WS WARN] Cliente no encontrado o socket cerrado.");
   return false;
 }
-
-module.exports = { handleConnection, sendCommandToClient };

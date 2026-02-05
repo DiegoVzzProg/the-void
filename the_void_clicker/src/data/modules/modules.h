@@ -1,5 +1,6 @@
 #pragma once
 #include "./leftclicker/leftclicker.h"
+#include "./aimassist/aimassist.h"
 
 namespace Feature {
 	class CModules {

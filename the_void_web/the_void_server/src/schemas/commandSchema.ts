@@ -47,4 +47,4 @@ const commandSchema = {
   },
 };
 
-module.exports = commandSchema;
+export default commandSchema;

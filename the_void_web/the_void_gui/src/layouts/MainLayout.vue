@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
+import { onMounted, watch, reactive } from 'vue';
 import { useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { Form, KeyRound, LayoutDashboard, Package, Settings2, TvMinimal, User } from 'lucide-vue-next';
@@ -29,14 +29,14 @@ const iconMap = {
 
 type IconName = keyof typeof iconMap;
 
-const options = [
+const options = reactive([
     { id: 1, icono: "TvMinimal", text: "information", visible: true, params: {} },
     { id: 2, icono: "LayoutDashboard", text: "dashboard", visible: false, params: {} },
-    { id: 3, icono: "Package", text: "modules", visible: true, params: {} },
+    { id: 3, icono: "Package", text: "modules", visible: !optionActive.value, params: {} },
     { id: 4, icono: "Settings2", text: "settings", visible: false, params: {} },
     { id: 5, icono: "Form", text: "forum", visible: false, params: {} },
     { id: 6, icono: "KeyRound", text: "auth", visible: optionActive.value, params: { view: "login" } },
-];
+]);
 
 // Determine icon dynamically
 const getIcon = (name: string) => {
@@ -61,6 +61,9 @@ watch(
     (newValue) => {
         if (options[5]) {
             options[5].visible = newValue ?? false;
+        }
+        if (options[2]) {
+            options[2].visible = !(newValue ?? false);
         }
     }
 );
@@ -120,7 +123,7 @@ onMounted(() => {
                     </div>
 
                     <!-- User Profile -->
-                    <div v-if="username !== ''"
+                    <div v-if="username !== ''" @click="new Utils().RedirectPage('user-panel')"
                         class="bg-[#18181B]/50 border border-[#232732] rounded-2xl p-3 lg:p-4 w-full flex flex-row lg:flex-row items-center gap-3 backdrop-blur-md transition-all hover:bg-[#18181B] hover:border-indigo-500/30 group cursor-pointer max-lg:hidden">
                         <div
                             class="size-10 rounded-full overflow-hidden border border-indigo-500/50 bg-[#222] flex items-center justify-center shrink-0 shadow-[0_0_15px_-5px_#6366f1]">
@@ -138,12 +141,13 @@ onMounted(() => {
 
                 <!-- Main Content Area -->
                 <section
-                    class="flex flex-col flex-1 relative overflow-hidden bg-gradient-to-br from-[#0a0a0c] to-[#0f1116]">
+                    class="flex flex-col flex-1 relative overflow-hidden bg-linear-to-br from-[#0a0a0c] to-[#0f1116]">
                     <div
                         class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay">
                     </div>
 
-                    <div class="flex-1 w-full h-full overflow-y-auto overflow-x-hidden p-1 md:p-4 lg:p-8 scroll-smooth z-10">
+                    <div
+                        class="flex-1 w-full h-full overflow-y-auto overflow-x-hidden p-1 md:p-4 lg:p-8 scroll-smooth z-10">
                         <slot></slot>
                     </div>
                 </section>

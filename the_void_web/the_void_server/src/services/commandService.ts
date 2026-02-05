@@ -1,13 +1,13 @@
-const prisma = require("../config/prisma");
-const TokenManager = require("../utils/tokenManager");
+import prisma from "../config/prisma";
+import TokenManager from "../utils/tokenManager";
 
 class CommandService {
-  async saveConfig(data, id) {
+  async saveConfig(data: any, id: string) {
     return await prisma.void_module_config.upsert({
       where: {
         user_id_module: {
           user_id: id,
-          module: data.module,
+          module: data.module as any,
         },
       },
       update: {
@@ -17,7 +17,7 @@ class CommandService {
       },
       create: {
         user_id: id,
-        module: data.module,
+        module: data.module as any,
         action: data.action,
         settings: data.settings,
         conditions: data.conditions,
@@ -25,10 +25,15 @@ class CommandService {
     });
   }
 
-  async loadConfig(authHeader) {
+  async loadConfig(authHeader: string) {
     const token = authHeader.replace("Bearer ", "");
     const decoded = TokenManager.verifyAccessToken(token);
-    const userId = decoded.id;
+    
+    if (!decoded || typeof decoded === 'string') {
+        throw new Error("Invalid token");
+    }
+
+    const userId = (decoded as any).id; // Cast since verifyAccessToken returns general JwtPayload
 
     const data = await prisma.void_users.findUnique({
       where: { id: userId },
@@ -50,4 +55,4 @@ class CommandService {
   }
 }
 
-module.exports = new CommandService();
+export default new CommandService();

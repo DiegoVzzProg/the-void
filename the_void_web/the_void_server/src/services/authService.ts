@@ -1,21 +1,41 @@
-const prisma = require("../config/prisma"); // Importamos el Singleton
-const bcrypt = require("bcrypt");
-const TokenManager = require("../utils/tokenManager");
+import prisma from "../config/prisma";
+import bcrypt from "bcrypt";
+import TokenManager from "../utils/tokenManager";
 
 const SALT_ROUNDS = 10;
+
+interface RegisterParams {
+  username: string;
+  email: string;
+  password: string;
+}
+
+interface LoginParams {
+  email: string;
+  password: string;
+}
+
+interface UserOutput {
+  id: number;
+  email: string;
+  username: string;
+  hwid: string | null;
+  banned: boolean;
+  role?: string;
+}
 
 class AuthService {
   /**
    * Registra un nuevo usuario en la base de datos
-   * @param {Object} params - { username, email, password }
+   * @param {RegisterParams} params - { username, email, password }
    */
-  async registerUser(params) {
+  async registerUser(params: RegisterParams) {
     try {
       const { email, password, username } = params;
 
       return await prisma.$transaction(async (tx) => {
         // 1. Verificar duplicados
-        const existsUser = await prisma.void_users.findUnique({
+        const existsUser = await tx.void_users.findUnique({
           where: { email: email },
         });
 
@@ -27,14 +47,14 @@ class AuthService {
         const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
         // 3. Crear usuario (HWID se queda en null por defecto hasta el primer login)
-        const user = await prisma.void_users.create({
+        const user = await tx.void_users.create({
           data: {
             username: username,
             email: email,
             password: hashedPassword,
             banned: false,
             hwid: null,
-          },
+          }
         });
 
         const tokens = TokenManager.generateTokens(user, "WEB_SESSION");
@@ -55,9 +75,10 @@ class AuthService {
 
   /**
    * Login con validación y vinculación de HWID
-   * @param {Object} params - { email, password, hwid }
+   * @param {LoginParams} params - { email, password }
+   * @param {string} [hwid] - Header x-hwid
    */
-  async loginUser(params, hwid) {
+  async loginUser(params: LoginParams, hwid?: string) {
     const { email, password } = params;
     if (!email || !password) {
       throw new Error("Invalid credentials");
@@ -88,12 +109,11 @@ class AuthService {
         });
       } else {
         if (user.hwid !== hwid) {
-          throw new Error("HWID Mismatch: Your license is tied to another PC.");
+            throw new Error("HWID Mismatch: Your license is tied to another PC.");
         }
       }
     } else {
       // Permitimos el login web sin validar HWID.
-      // Opcional: Podrías restringir acciones sensibles en la web si quieres.
     }
 
     const tokens = TokenManager.generateTokens(
@@ -111,13 +131,21 @@ class AuthService {
     };
   }
 
-  async refreshToken(params) {
+  async refreshToken(params: { refresh_token: string }) {
     const valid = TokenManager.verifyRefreshToken(params.refresh_token);
-    if (!valid) throw new Error("Expired token");
+    if (!valid || typeof valid === 'string') throw new Error("Expired token");
+
+    // valid is TokenPayload | JwtPayload. 
+    // TokenManager.verifyRefreshToken returns whatever jwt.verify returns. 
+    // In TokenManager.ts it returns `jwt.verify(token, REFRESH_SECRET)`.
+    // It should contain 'id' and 'hwid' based on generateTokens.
+    
+    // We should cast or check.
+    const payload = valid as any; // Assuming payload structure.
 
     const user = {
-      id: valid.id,
-      hwid: valid.hwid,
+      id: payload.id,
+      hwid: payload.hwid,
     };
 
     const tokens = TokenManager.generateTokens(
@@ -131,4 +159,4 @@ class AuthService {
   }
 }
 
-module.exports = new AuthService();
+export default new AuthService();

@@ -1,13 +1,15 @@
+import { FastifyRequest, FastifyReply, FastifyError } from 'fastify';
+
 /**
  * Global Error Handler for Fastify
  * Standardizes error responses across the API.
  */
-function errorHandler(error, request, reply) {
+function errorHandler(error: FastifyError & { validation?: any }, request: FastifyRequest, reply: FastifyReply) {
   // Log del error para debugging (usando el logger de Fastify)
   request.log.error(error);
 
   let statusCode = error.statusCode || 500;
-  let response = {
+  let response: { error: string; message: string; details?: any } = {
     error: error.name || "Internal Server Error",
     message: error.message || "An unexpected error occurred",
   };
@@ -39,4 +41,4 @@ function errorHandler(error, request, reply) {
   reply.code(statusCode).send(response);
 }
 
-module.exports = errorHandler;
+export default errorHandler;

@@ -14,18 +14,15 @@ const props = defineProps<{ settings: IAutoClicker | null }>();
 
 // Constants
 const AUTO_CLICKER_OPTIONS: SelectOption[] = [
-    { label: "blatan", value: "blatan" },
     { label: "inventory", value: "inventory" },
     { label: "auto block hit", value: "auto_block_hit" },
     { label: "weapon check", value: "weapon_check" },
     { label: "ignore blocks", value: "ignore_blocks" },
-    { label: "blockhit", value: "blockhit" },
-    { label: "exhaust", value: "exhaust" },
 ];
 
-const MIN_CPS = 5;
+const MIN_CPS = 10;
 const NORMAL_MAX_CPS = 24;
-const BLATANT_MAX_CPS = 80;
+// const BLATANT_MAX_CPS = 80;
 
 // State
 const autoClicker = ref<boolean>(false);
@@ -55,10 +52,10 @@ const loadConfig = () => {
     autoClickerValue.value = settings.cps;
     autoClickerConditions.value = settings.conditions;
 
-    // Sync slider max if blatan is enabled
-    if (autoClickerConditions.value.includes("blatan")) {
-        autoClickerSliderMax.value = BLATANT_MAX_CPS;
-    }
+    // // Sync slider max if blatan is enabled
+    // if (autoClickerConditions.value.includes("blatan")) {
+    //     autoClickerSliderMax.value = BLATANT_MAX_CPS;
+    // }
 }
 
 // Logic
@@ -101,18 +98,18 @@ const onChangeAutoClickerValue = () => {
     debouncedAutoClickerModule();
 }
 
-const onChangeAutoClickerConditions = async (values: string[]) => {
+const onChangeAutoClickerConditions = async (_values: string[]) => {
     if (!autoClicker.value) return;
 
-    if (values.includes("blatan")) {
-        autoClickerSliderMax.value = BLATANT_MAX_CPS;
-    } else if (!values.includes("blatan") && autoClickerSliderMax.value === BLATANT_MAX_CPS) {
-        autoClickerSliderMax.value = NORMAL_MAX_CPS;
-        // Clamp value if needed
-        if (autoClickerValue.value > NORMAL_MAX_CPS) {
-            autoClickerValue.value = 12; // Reset to default safe value
-        }
-    }
+    // if (values.includes("blatan")) {
+    //     autoClickerSliderMax.value = BLATANT_MAX_CPS;
+    // } else if (!values.includes("blatan") && autoClickerSliderMax.value === BLATANT_MAX_CPS) {
+    //     autoClickerSliderMax.value = NORMAL_MAX_CPS;
+    //     // Clamp value if needed
+    //     if (autoClickerValue.value > NORMAL_MAX_CPS) {
+    //         autoClickerValue.value = 12; // Reset to default safe value
+    //     }
+    // }
 
     await autoClickerModule();
 }
@@ -125,7 +122,7 @@ const onChangeAutoClickerConditions = async (values: string[]) => {
             <div>
                 <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
                     <span>CPS</span>
-                    <span class="text-white">{{ autoClickerValue }}</span>
+                    <span class="text-white bg-white/5 px-2 py-0.5 rounded font-mono">{{ autoClickerValue }}</span>
                 </div>
                 <Slider :min="autoClickerSliderMin" :max="autoClickerSliderMax" v-model="autoClickerValue"
                     v-on:change="onChangeAutoClickerValue" />

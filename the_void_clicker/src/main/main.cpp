@@ -23,11 +23,10 @@ namespace Main {
 		LOG_INFO(xorstr("Esperando a que el juego cargue..."));
 
 		while (!panic) {
+			std::string modName = xorstr("panic");
 
-			if (Online::CWeb::Get().ItIsTheModule(xorstr("panic"))) {
-				panic = Online::CWeb::Get().ModuleActivated();
-
-				Online::CWeb::Get().AcknowledgeCommand();
+			if (Online::CWeb::Get().IsModuleActive(modName)) {
+				panic = true;
 				continue;
 			}
 

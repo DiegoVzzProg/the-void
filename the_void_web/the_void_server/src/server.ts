@@ -1,14 +1,21 @@
-require("dotenv").config();
-const fastify = require("fastify")({ logger: true }); // Logger activado
-const { handleConnection } = require("./src/websocket/wsManager");
+import dotenv from 'dotenv';
+import Fastify from 'fastify';
+import cors from '@fastify/cors';
+import websocket from '@fastify/websocket';
+import rateLimit from '@fastify/rate-limit';
+import { handleConnection } from './websocket/wsManager';
+import api from './routes/api';
+import errorHandler from './utils/errorHandler';
 
-const api = require("./src/routes/api");
+dotenv.config();
+
+const fastify = Fastify({ logger: true });
 
 const start = async () => {
   try {
-    await fastify.register(require("@fastify/cors"), { origin: true });
-    await fastify.register(require("@fastify/websocket"));
-    await fastify.register(require("@fastify/rate-limit"), {
+    await fastify.register(cors, { origin: true });
+    await fastify.register(websocket);
+    await fastify.register(rateLimit, {
       max: 100, // Máximo 100 peticiones globales
       timeWindow: "1 minute", // por minuto por IP
       errorResponseBuilder: function (request, context) {
@@ -23,14 +30,14 @@ const start = async () => {
     await fastify.register(api, { prefix: "/api" });
 
     // Global Error Handler
-    fastify.setErrorHandler(require("./src/utils/errorHandler"));
+    fastify.setErrorHandler(errorHandler);
 
     fastify.register(async function (fastify) {
       fastify.get("/ws", { websocket: true }, handleConnection);
     });
 
     const PORT = process.env.PORT || 5010;
-    await fastify.listen({ port: PORT, host: "0.0.0.0" });
+    await fastify.listen({ port: Number(PORT), host: "0.0.0.0" });
 
     fastify.log.info(`
       ====================================

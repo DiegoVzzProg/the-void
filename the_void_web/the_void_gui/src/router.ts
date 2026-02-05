@@ -7,6 +7,7 @@ import {
 import WelcomeView from "./views/options/WelcomeView.vue";
 import AuthView from "./views/AuthView.vue";
 import ModulesView from "./views/options/ModulesView.vue";
+import UserPanelView from "./views/options/UserPanelView.vue";
 
 const routes: Array<RouteRecordRaw> = [
   { path: "/:pathMatch(.*)*", redirect: { name: "information" } },
@@ -26,6 +27,12 @@ const routes: Array<RouteRecordRaw> = [
     path: "/modules",
     name: "modules",
     component: ModulesView,
+    meta: { layout: "Main" },
+  },
+  {
+    path: "/user-panel",
+    name: "user-panel",
+    component: UserPanelView,
     meta: { layout: "Main" },
   },
 ];

@@ -1,4 +1,4 @@
-const login = {
+export const login = {
   body: {
     type: "object",
     required: ["email", "password"],
@@ -9,7 +9,7 @@ const login = {
   },
 };
 
-const register = {
+export const register = {
   body: {
     type: "object",
     required: ["username", "password", "email"],
@@ -21,7 +21,7 @@ const register = {
   },
 };
 
-const refresh_token = {
+export const refresh_token = {
   body: {
     type: "object",
     required: ["refresh_token"],

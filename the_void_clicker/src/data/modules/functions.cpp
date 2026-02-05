@@ -400,4 +400,306 @@ namespace Java {
 			Java::CEnv::Get().env->SetBooleanField(rightClickKeyObj, pressedFieldID, pressed ? JNI_TRUE : JNI_FALSE);
 		}
 	}
+
+	std::vector<jobject> CFunctions::GetWorldPlayers() {
+		std::vector<jobject> players;
+
+		// 1. Validar entorno
+		if (!McIsValid()) return players;
+
+		// 2. Obtener el Mundo
+		jobject theWorld = GetWorld();
+		if (!theWorld) return players;
+
+		// 3. Validar que tengamos el mapeo de la lista
+		if (Java::CMapper::Get().fields.find(xorstr("World_entityList")) == Java::CMapper::Get().fields.end()) {
+			Java::CEnv::Get().env->DeleteLocalRef(theWorld);
+			return players;
+		}
+
+		// 4. Obtener ID del campo 'loadedEntityList'
+		jclass worldClass = Java::CEnv::Get().env->GetObjectClass(theWorld);
+		jfieldID listID = Java::CEnv::Get().env->GetFieldID(worldClass,
+			Java::CMapper::Get().fields[xorstr("World_entityList")].c_str(),
+			Java::CMapper::Get().fieldSigs[xorstr("World_entityList")].c_str()
+		);
+		Java::CEnv::Get().env->DeleteLocalRef(worldClass); // Limpiamos la clase
+
+		if (!listID) {
+			Java::CEnv::Get().env->DeleteLocalRef(theWorld);
+			return players;
+		}
+
+		// 5. Obtener el objeto Lista (java.util.List)
+		jobject listObj = Java::CEnv::Get().env->GetObjectField(theWorld, listID);
+		Java::CEnv::Get().env->DeleteLocalRef(theWorld); // Ya no necesitamos el mundo
+
+		if (!listObj) return players;
+
+		// 6. Convertir List -> Array (toArray) para iterar en C++
+		// Buscamos la clase java/util/List para llamar a toArray()
+		jclass listClass = Java::CEnv::Get().env->GetObjectClass(listObj);
+		jmethodID toArrayMethod = Java::CEnv::Get().env->GetMethodID(listClass, xorstr("toArray"), xorstr("()[Ljava/lang/Object;"));
+		Java::CEnv::Get().env->DeleteLocalRef(listClass);
+
+		if (toArrayMethod) {
+			jobjectArray array = (jobjectArray)Java::CEnv::Get().env->CallObjectMethod(listObj, toArrayMethod);
+			if (array) {
+				int len = Java::CEnv::Get().env->GetArrayLength(array);
+				for (int i = 0; i < len; i++) {
+					jobject entity = Java::CEnv::Get().env->GetObjectArrayElement(array, i);
+					if (entity) {
+						// Aquí podrías filtrar si es 'instanceof EntityPlayer' si mapeas esa clase
+						// Por ahora guardamos todo, el AimAssist filtrará distancia/tipo
+						players.push_back(entity);
+					}
+				}
+				Java::CEnv::Get().env->DeleteLocalRef(array);
+			}
+		}
+
+		Java::CEnv::Get().env->DeleteLocalRef(listObj);
+		return players;
+	}
+
+	Vector3 CFunctions::GetEntityPos(jobject entity) {
+		Vector3 pos = { 0, 0, 0 };
+		if (!entity) return pos;
+
+		// Validamos que existan los mapeos
+		if (Java::CMapper::Get().fields.find(xorstr("Entity_posX")) == Java::CMapper::Get().fields.end()) return pos;
+
+		jclass entClass = Java::CEnv::Get().env->GetObjectClass(entity);
+
+		// Obtenemos IDs
+		jfieldID xID = Java::CEnv::Get().env->GetFieldID(entClass, Java::CMapper::Get().fields[xorstr("Entity_posX")].c_str(), "D");
+		jfieldID yID = Java::CEnv::Get().env->GetFieldID(entClass, Java::CMapper::Get().fields[xorstr("Entity_posY")].c_str(), "D");
+		jfieldID zID = Java::CEnv::Get().env->GetFieldID(entClass, Java::CMapper::Get().fields[xorstr("Entity_posZ")].c_str(), "D");
+
+		Java::CEnv::Get().env->DeleteLocalRef(entClass);
+
+		if (xID && yID && zID) {
+			pos.x = Java::CEnv::Get().env->GetDoubleField(entity, xID);
+			pos.y = Java::CEnv::Get().env->GetDoubleField(entity, yID);
+			pos.z = Java::CEnv::Get().env->GetDoubleField(entity, zID);
+		}
+
+		return pos;
+	}
+
+	float CFunctions::GetHeight(jobject entity) {
+		if (!entity) return 0;
+
+		if (Java::CMapper::Get().fields.find(xorstr("Entity_height")) 
+			== Java::CMapper::Get().fields.end()) return 0;
+
+		jclass entClass = Java::CEnv::Get().env->GetObjectClass(entity);
+
+		jfieldID height = Java::CEnv::Get().env->GetFieldID(entClass, Java::CMapper::Get().fields[xorstr("Entity_height")].c_str(), xorstr("F"));
+		Java::CEnv::Get().env->DeleteLocalRef(entClass);
+
+		if (!height) {
+			return 0;
+		}
+
+		return Java::CEnv::Get().env->GetFloatField(entity, height);
+	}
+
+
+	Vector3 CFunctions::GetEyePos(jobject entity) {
+		Vector3 pos = GetEntityPos(entity);
+
+		return Vector3{
+			pos.x,
+			(float)(double)(pos.y + (GetHeight(entity) * 0.85)),
+			pos.z
+		};
+	}
+
+	Vector2 CFunctions::GetMyRotation() {
+		Vector2 rot = { 0, 0 };
+		jobject me = GetPlayer();
+
+		if (!me) return rot;
+		if (Java::CMapper::Get().fields.find(xorstr("Entity_rotationYaw")) == Java::CMapper::Get().fields.end()) {
+			Java::CEnv::Get().env->DeleteLocalRef(me); return rot;
+		}
+
+		jclass meClass = Java::CEnv::Get().env->GetObjectClass(me);
+
+		jfieldID yawID = Java::CEnv::Get().env->GetFieldID(meClass, Java::CMapper::Get().fields[xorstr("Entity_rotationYaw")].c_str(), xorstr("F"));
+		jfieldID pitchID = Java::CEnv::Get().env->GetFieldID(meClass, Java::CMapper::Get().fields[xorstr("Entity_rotationPitch")].c_str(), xorstr("F"));
+
+		Java::CEnv::Get().env->DeleteLocalRef(meClass);
+
+		if (yawID && pitchID) {
+			rot.yaw = Java::CEnv::Get().env->GetFloatField(me, yawID);
+			rot.pitch = Java::CEnv::Get().env->GetFloatField(me, pitchID);
+		}
+
+		Java::CEnv::Get().env->DeleteLocalRef(me);
+		return rot;
+	}
+
+	void CFunctions::SetMyRotation(Vector2 rots) {
+		if (!McIsValid()) {
+			return;
+		}
+
+		jobject player = GetPlayer();
+		if (!player) {
+			return;
+		}
+
+		auto& mapper = Java::CMapper::Get();
+
+		// Verificar que los mapeos existan
+		if (mapper.fields.find(xorstr("Entity_rotationYaw")) == mapper.fields.end()) {
+			Java::CEnv::Get().env->DeleteLocalRef(player);
+			return;
+		}
+		if (mapper.fields.find(xorstr("Entity_rotationPitch")) == mapper.fields.end()) {
+			Java::CEnv::Get().env->DeleteLocalRef(player);
+			return;
+		}
+
+		jclass cls = Java::CEnv::Get().env->GetObjectClass(player);
+
+		// Rotación actual
+		jfieldID yawID = Java::CEnv::Get().env->GetFieldID(
+			cls,
+			mapper.fields[xorstr("Entity_rotationYaw")].c_str(),
+			xorstr("F")
+		);
+
+		jfieldID pitchID = Java::CEnv::Get().env->GetFieldID(
+			cls,
+			mapper.fields[xorstr("Entity_rotationPitch")].c_str(),
+			xorstr("F")
+		);
+
+		// Rotación previa (anti-flicker)
+		jfieldID prevYawID = nullptr;
+		jfieldID prevPitchID = nullptr;
+
+		if (mapper.fields.find(xorstr("Entity_prevRotationYaw")) != mapper.fields.end()) {
+			prevYawID = Java::CEnv::Get().env->GetFieldID(
+				cls,
+				mapper.fields[xorstr("Entity_prevRotationYaw")].c_str(),
+				xorstr("F")
+			);
+		}
+
+		if (mapper.fields.find(xorstr("Entity_prevRotationPitch")) != mapper.fields.end()) {
+			prevPitchID = Java::CEnv::Get().env->GetFieldID(
+				cls,
+				mapper.fields[xorstr("Entity_prevRotationPitch")].c_str(),
+				xorstr("F")
+			);
+		}
+
+		Java::CEnv::Get().env->ExceptionClear();
+
+		float finalPitch = std::clamp(rots.pitch, -90.0f, 90.0f);
+
+		// Escribir rotación actual
+		if (yawID) {
+			Java::CEnv::Get().env->SetFloatField(player, yawID, rots.yaw);
+		}
+
+		if (pitchID) {
+			Java::CEnv::Get().env->SetFloatField(player, pitchID, finalPitch);
+		}
+
+		// Escribir rotación previa (anti-flicker)
+		if (prevYawID) {
+			Java::CEnv::Get().env->SetFloatField(player, prevYawID, rots.yaw);
+		}
+
+		if (prevPitchID) {
+			Java::CEnv::Get().env->SetFloatField(player, prevPitchID, finalPitch);
+		}
+
+		Java::CEnv::Get().env->DeleteLocalRef(cls);
+		Java::CEnv::Get().env->DeleteLocalRef(player);
+	}
+
+	float CFunctions::GetMouseSensitivity() {
+		if (!McIsValid()) return 0.5f;
+
+		// 1. Obtener GameSettings (MC_gameSettings)
+		jobject gameSettings = Java::CMinecraft::Get().GetFieldObject(xorstr("MC_gameSettings"));
+		if (!gameSettings) {
+			LOG_INFO("gameSettings invalid 0.5");
+			return 0.5f;
+		}
+
+		// 2. Obtener el valor float (GS_mouseSensitivity)
+		// Usamos el Mapper para asegurar que tenemos los IDs correctos
+		if (Java::CMapper::Get().fields.find(xorstr("GS_mouseSensitivity")) == Java::CMapper::Get().fields.end()) {
+			Java::CEnv::Get().env->DeleteLocalRef(gameSettings);
+			LOG_INFO("GS_mouseSensitivity invalid 0.5");
+			return 0.5f;
+		}
+
+		jclass gsClass = Java::CEnv::Get().env->GetObjectClass(gameSettings);
+		jfieldID sensID = Java::CEnv::Get().env->GetFieldID(gsClass,
+			Java::CMapper::Get().fields[xorstr("GS_mouseSensitivity")].c_str(),
+			xorstr("F")
+		);
+		Java::CEnv::Get().env->DeleteLocalRef(gsClass);
+
+		float sensitivity = 0.5f;
+		if (sensID) {
+			sensitivity = Java::CEnv::Get().env->GetFloatField(gameSettings, sensID);
+		}
+
+		Java::CEnv::Get().env->DeleteLocalRef(gameSettings);
+		return sensitivity;
+	}
+
+	int CFunctions::GetHurtTime(jobject entity) {
+		if (!entity || !McIsValid()) return 0;
+
+		if (Java::CMapper::Get().fields.find(xorstr("ELB_hurtTime")) 
+			== Java::CMapper::Get().fields.end()) {
+			return 0;
+		}
+
+		jclass cls = Java::CEnv::Get().env->GetObjectClass(entity);
+		jfieldID fid = Java::CEnv::Get().env->GetFieldID(cls,
+			Java::CMapper::Get().fields[xorstr("ELB_hurtTime")].c_str(),
+			xorstr("I"));
+
+		int ht = 0;
+		if (fid) ht = Java::CEnv::Get().env->GetIntField(entity, fid);
+
+		Java::CEnv::Get().env->DeleteLocalRef(cls);
+		return ht;
+	}
+
+	// [EN FUNCTIONS.CPP]
+
+	float CFunctions::GetSwingProgress(jobject entity) {
+		if (!entity || !McIsValid()) return 0.0f;
+
+		if (Java::CMapper::Get().fields.find(xorstr("ELB_swingProgress")) 
+			== Java::CMapper::Get().fields.end()) {
+			return 0.0f;
+		}
+
+		// 2. Obtener ID del campo
+		jclass cls = Java::CEnv::Get().env->GetObjectClass(entity);
+		jfieldID fid = Java::CEnv::Get().env->GetFieldID(cls, Java::CMapper::Get().fields[xorstr("ELB_swingProgress")].c_str(), "F");
+
+		float progress = 0.0f;
+
+		// 3. Leer valor
+		if (fid) {
+			progress = Java::CEnv::Get().env->GetFloatField(entity, fid);
+		}
+
+		Java::CEnv::Get().env->DeleteLocalRef(cls);
+		return progress;
+	}
 }

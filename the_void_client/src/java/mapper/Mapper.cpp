@@ -157,7 +157,18 @@ namespace TheVoid {
                 TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationYaw"), { xorstr("rotationYaw"), xorstr("y") }, "F");
                 TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_rotationPitch"), { xorstr("rotationPitch"), xorstr("z") }, "F");
                 TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_width"), { xorstr("width"), xorstr("f") }, "F");
-                TheVoid::Helper::Expert::ResolveFieldGeneric(xorstr("Entity"), xorstr("Entity_height"), { xorstr("height"), xorstr("g") }, "F");
+                Helper::Expert::ResolveFieldGeneric(
+                    xorstr("Entity"),
+                    xorstr("Entity_height"),
+                    {
+                        xorstr("height"),
+                        xorstr("H"),
+                        xorstr("K"),
+                        xorstr("eyeHeight"),
+                        xorstr("aM")
+                    },
+                    xorstr("F")
+                );
                 TheVoid::Helper::Expert::ResolveFieldGeneric(
                     xorstr("MovingObjectPosition"),
                     xorstr("MOP_typeOfHit"),

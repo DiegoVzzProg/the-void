@@ -72,12 +72,10 @@ namespace Left {
     }
 
     void Clicker::Activate() {
-        if (!Online::CWeb::Get().ItIsTheModule(xorstr("auto-clicker")))
-            return;
+        std::string modName = xorstr("auto-clicker");
 
-        enabled = Online::CWeb::Get().ModuleActivated();
-
-        if (!enabled) {
+        if (!Online::CWeb::Get().IsModuleActive(modName))
+        {
             ResetExhaustTimers();
             return;
         }
@@ -91,11 +89,11 @@ namespace Left {
             return;
         }
 
-        maxcps = Online::CWeb::Get().GetValue(xorstr("cps"));
+        maxcps = Online::CWeb::Get().GetValue(modName, xorstr("cps"));
         mincps = (maxcps > 4) ? maxcps - 3 : 1;
-        inventory = Online::CWeb::Get().ActivatedCondition(xorstr("inventory"));
-        weapon_check = Online::CWeb::Get().ActivatedCondition(xorstr("weapon_check"));
-        ignore_blocks = Online::CWeb::Get().ActivatedCondition(xorstr("ignore_blocks"));
+        inventory = Online::CWeb::Get().ActivatedCondition(modName, xorstr("inventory"));
+        weapon_check = Online::CWeb::Get().ActivatedCondition(modName, xorstr("weapon_check"));
+        ignore_blocks = Online::CWeb::Get().ActivatedCondition(modName, xorstr("ignore_blocks"));
 
         bool shouldClick = false;
 
@@ -104,7 +102,11 @@ namespace Left {
             if (!inventory) return;
 
             if (Java::CFunctions::Get().IsInInventory()) {
-                shouldClick = true;
+                bool isShiftDown = (GetAsyncKeyState(VK_LSHIFT) & 0x8000);
+
+                if (isShiftDown) {
+                    shouldClick = true;
+                }
             }
             else {
                 return;
@@ -178,17 +180,27 @@ namespace Left {
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastClickTime).count();
 
         if (elapsed >= nextDelay) {
-            // Click Down
-            PostMessageA(Java::CEnv::Get().GameWindow, WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM(0, 0));
+            LPARAM clickPos = MAKELPARAM(0, 0);
 
-            // Hold Time también debería ser un poco más "perezoso" si estamos cansados
+            // Pero si estamos en GUI (Inventario), necesitamos la posición EXACTA
+            if (Java::CFunctions::Get().InGui()) {
+                POINT p;
+                if (GetCursorPos(&p)) {
+                    // Convertimos de Pantalla Global -> Ventana del Juego
+                    ScreenToClient(Java::CEnv::Get().GameWindow, &p);
+                    clickPos = MAKELPARAM(p.x, p.y);
+                }
+            }
+
+            PostMessageA(Java::CEnv::Get().GameWindow, WM_LBUTTONDOWN, MK_LBUTTON, clickPos);
+
             long long holdTime = GetHoldTime();
             if (isExhausted) holdTime += 15; // Clicks más largos por cansancio
 
             std::this_thread::sleep_for(std::chrono::milliseconds(holdTime));
 
             // Click Up
-            PostMessageA(Java::CEnv::Get().GameWindow, WM_LBUTTONUP, MK_LBUTTON, MAKELPARAM(0, 0));
+            PostMessageA(Java::CEnv::Get().GameWindow, WM_LBUTTONUP, MK_LBUTTON, clickPos);
 
             lastClickTime = std::chrono::steady_clock::now();
 
@@ -201,7 +213,8 @@ namespace Left {
     }
 
     void Clicker::AutoBlockHit() {
-        if (!Online::CWeb::Get().ItIsTheModule(xorstr("auto-clicker"))) return;
+        std::string modName = xorstr("auto-clicker");
+        if (!Online::CWeb::Get().IsModuleActive(modName)) return;
 
         bool inputAttack = (GetAsyncKeyState(VK_LBUTTON) & 0x8000);
 
@@ -213,7 +226,7 @@ namespace Left {
             return;
         }
 
-        autoBlockHit = Online::CWeb::Get().ActivatedCondition(xorstr("auto_block_hit"));
+        autoBlockHit = Online::CWeb::Get().ActivatedCondition(modName, xorstr("auto_block_hit"));
         if (!autoBlockHit) return;
 
         bool canBlock = Java::CFunctions::Get().IsHoldingSword() &&

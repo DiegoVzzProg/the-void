@@ -36,7 +36,10 @@ namespace Online {
                     auto data = json::parse(msg->str);
 
                     std::lock_guard<std::mutex> lock(candado);
-                    module_manager_value = data;
+                    // --- LOGICA DE CACHEO ---
+                    std::string moduleName = data["module"].get<std::string>();
+
+                    module_cache[moduleName] = data;
 
                     if (data.contains("conditions")) {
                         cached_conditions.clear();
@@ -62,64 +65,64 @@ namespace Online {
         ix::uninitNetSystem();
     }
 
-    bool CWeb::ModuleActivated() {
-        std::lock_guard<std::mutex> lock(candado);
-        return module_manager_value[xorstr("action")] == xorstr("enable");
-    }
 
-    bool CWeb::ItIsTheModule(std::string key) {
+    bool CWeb::IsModuleActive(std::string moduleName) {
         std::lock_guard<std::mutex> lock(candado);
 
-        if (!is_new_command && module_manager_value.is_null()) {
+        if (module_cache.find(moduleName) == module_cache.end()) {
             return false;
         }
 
-        std::string targetModule = module_manager_value[xorstr("module")];
+        try {
+            return module_cache[moduleName][xorstr("action")] == xorstr("enable");
+        }
+        catch (...) {
+            return false;
+        }
+    }
 
-        if (targetModule != key) {
+    // Obtiene un valor específico de los settings del módulo
+    json CWeb::GetValue(std::string moduleName, std::string settingKey) {
+        std::lock_guard<std::mutex> lock(candado);
+
+        // 1. Validar existencia del módulo
+        if (module_cache.find(moduleName) == module_cache.end()) return 0;
+
+        try {
+            auto& moduleData = module_cache[moduleName];
+
+            // 2. Validar existencia de settings
+            if (!moduleData.contains(xorstr("settings"))) return 0;
+
+            // 3. Validar existencia de la llave específica (ej. "cps")
+            if (moduleData[xorstr("settings")].contains(settingKey)) {
+                return moduleData[xorstr("settings")][settingKey];
+            }
+        }
+        catch (...) {
+            return 0;
+        }
+
+        return 0; // Valor por defecto si falla algo
+    }
+    bool CWeb::ActivatedCondition(std::string moduleName, std::string conditionKey) {
+        std::lock_guard<std::mutex> lock(candado);
+
+        if (module_cache.find(moduleName) == module_cache.end()) return false;
+
+        try {
+            auto& moduleData = module_cache[moduleName];
+
+            if (moduleData.contains(xorstr("conditions"))) {
+                for (auto& item : moduleData[xorstr("conditions")]) {
+                    if (item.get<std::string>() == conditionKey) return true;
+                }
+            }
+        }
+        catch (...) {
             return false;
         }
 
-        return true;
-    }
-
-    json CWeb::GetModuleValue(std::string key) {
-        return module_manager_value[key];
-    }
-
-    json CWeb::GetValue(std::string key) {
-        // 1. Seguridad: Si el JSON global está vacío o nulo, devolvemos 0 (o null) para no crashear.
-        if (module_manager_value.is_null()) {
-            return 0;
-        }
-
-        // 2. Seguridad: Verificamos si existe la sección "settings"
-        if (!module_manager_value.contains(xorstr("settings"))) {
-            return 0;
-        }
-
-        auto& settings = module_manager_value[xorstr("settings")];
-
-        // 3. Dinamismo: Buscamos la llave que TÚ pediste (key), no "cps".
-        if (settings.contains(key)) {
-            return settings[key]; // Devuelve el objeto json (int, bool, float, etc.)
-        }
-
-        // Si no existe la configuración, devolvemos 0 por defecto.
-        return 0;
-    }
-
-    void CWeb::AcknowledgeCommand() {
-        std::lock_guard<std::mutex> lock(candado);
-        is_new_command = false;
-        module_manager_value = nullptr; 
-    }
-
-    bool CWeb::ActivatedCondition(std::string key) {
-        std::lock_guard<std::mutex> lock(candado);
-        for (const auto& cond : cached_conditions) {
-            if (cond == key) return true;
-        }
         return false;
     }
 }

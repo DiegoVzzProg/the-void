@@ -164,10 +164,12 @@
     <ClInclude Include="src\data\minecraft\mapper\helpers\expert\helperExpert.h" />
     <ClInclude Include="src\data\minecraft\mapper\mapper.h" />
     <ClInclude Include="src\data\minecraft\minecraft.h" />
+    <ClInclude Include="src\data\modules\aimassist\aimassist.h" />
     <ClInclude Include="src\data\modules\functions.h" />
     <ClInclude Include="src\data\modules\leftclicker\leftclicker.h" />
     <ClInclude Include="src\data\modules\modules.h" />
     <ClInclude Include="src\data\utils\javautils.h" />
+    <ClInclude Include="src\data\utils\math.h" />
     <ClInclude Include="src\data\web\web.h" />
     <ClInclude Include="src\dll\debug.h" />
     <ClInclude Include="src\main\main.h" />
@@ -178,9 +180,11 @@
     <ClCompile Include="src\data\minecraft\mapper\helpers\expert\helperExpert.cpp" />
     <ClCompile Include="src\data\minecraft\mapper\mapper.cpp" />
     <ClCompile Include="src\data\minecraft\minecraft.cpp" />
+    <ClCompile Include="src\data\modules\aimassist\aimassist.cpp" />
     <ClCompile Include="src\data\modules\functions.cpp" />
     <ClCompile Include="src\data\modules\leftclicker\leftclicker.cpp" />
     <ClCompile Include="src\data\modules\modules.cpp" />
+    <ClCompile Include="src\data\utils\math.cpp" />
     <ClCompile Include="src\data\web\web.cpp" />
     <ClCompile Include="src\dll\dllmain.cpp" />
     <ClCompile Include="src\main\main.cpp" />

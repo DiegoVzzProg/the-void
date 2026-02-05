@@ -1,11 +1,11 @@
-const authController = require("../controllers/authController");
-const authSchema = require("../schemas/authSchema");
+import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import authController from "../controllers/authController";
+import commandController from "../controllers/commandController";
+import * as authSchema from "../schemas/authSchema";
+import commandSchema from "../schemas/commandSchema";
+import authenticate from "../middlewares/authMiddleware";
 
-const commandController = require("../controllers/commandController");
-const commandSchema = require("../schemas/commandSchema");
-
-const authenticate = require("../middlewares/authMiddleware");
-const api = async (fastify, options) => {
+const api = async (fastify: FastifyInstance, options: FastifyPluginOptions) => {
   fastify.post(
     "/command",
     { schema: commandSchema, onRequest: [authenticate] },
@@ -61,4 +61,4 @@ const api = async (fastify, options) => {
   );
 };
 
-module.exports = api;
+export default api;
