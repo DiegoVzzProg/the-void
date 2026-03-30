@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="120 70 272 400" role="img" aria-label="Void Cloud Hex Logo">
+  
+  <style>
+    /* Estructura minimalista y animaciones CSS */
+    .vc-glow { filter: url(#smoothGlow); }
+    
+    .vc-stroke {
+      fill: none;
+      stroke: url(#chromaBluePurple);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    
+    /* Hexágono exterior optimizado para 80px */
+    .vc-hex-outer {
+      stroke-width: 8;
+      stroke-dasharray: 120 60;
+      animation: dashFlow 8s linear infinite;
+    }
+
+    /* Hexágono interior optimizado para 80px */
+    .vc-hex-inner {
+      stroke-width: 3;
+      opacity: 0.8;
+    }
+    
+    /* Texto ampliado para ser legible a escalas pequeñas */
+    .vc-text {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 38px;
+      font-weight: 500;
+      letter-spacing: 10px;
+      text-anchor: middle;
+      stroke-width: 2;
+    }
+
+    @keyframes dashFlow {
+      to { stroke-dashoffset: -360; }
+    }
+  </style>
+
+  <defs>
+    <linearGradient id="chromaBluePurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%">
+        <animate attributeName="stop-color" 
+                 values="#00E5FF; #2979FF; #651FFF; #D500F9; #00E5FF" 
+                 dur="6s" repeatCount="indefinite" />
+      </stop>
+      <stop offset="50%">
+        <animate attributeName="stop-color" 
+                 values="#651FFF; #D500F9; #00E5FF; #2979FF; #651FFF" 
+                 dur="6s" repeatCount="indefinite" />
+      </stop>
+      <stop offset="100%">
+        <animate attributeName="stop-color" 
+                 values="#D500F9; #00E5FF; #2979FF; #651FFF; #D500F9" 
+                 dur="6s" repeatCount="indefinite" />
+      </stop>
+    </linearGradient>
+
+    <filter id="smoothGlow" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="6" result="blur1" />
+      <feGaussianBlur stdDeviation="16" result="blur2" />
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <g class="vc-glow">
+    <path d="M 256 110 
+             L 368 175 
+             L 368 305 
+             L 256 370 
+             L 144 305 
+             L 144 175 Z" 
+          class="vc-stroke vc-hex-outer"/>
+
+    <path d="M 256 150 
+             L 325 190 
+             L 325 290 
+             L 256 330 
+             L 187 290 
+             L 187 190 Z" 
+          class="vc-stroke vc-hex-inner"/>
+
+    <text x="256" y="440" class="vc-stroke vc-text">VOID CLOUD</text>
+  </g>
+</svg>
