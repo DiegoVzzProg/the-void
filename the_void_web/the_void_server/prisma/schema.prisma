@@ -7,25 +7,114 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// --- 1. USUARIOS Y SEGURIDAD ---
+
 model void_users {
-  id       String  @id @default(uuid())
-  email    String  @unique @db.VarChar(250)
-  username String  @db.VarChar(16)
-  password String  @db.VarChar(255)
-  hwid     String? @unique @db.VarChar(250)
-  banned   Boolean @default(false)
+  id       String @id @default(uuid())
+  email    String @unique @db.VarChar(250)
+  username String @unique @db.VarChar(16) // Añadido @unique (no pueden haber 2 iguales)
+  password String @db.VarChar(255)
+
+  // Seguridad y OpSec
+  hwid            String?   @unique @db.VarChar(250)
+  last_hwid_reset DateTime? // Para cooldowns de reseteo
+  last_ip         String?   @db.VarChar(45)
+  last_login      DateTime?
+
+  role       Role    @default(USER) // Enum para permisos
+  banned     Boolean @default(false)
+  ban_reason String? @db.VarChar(255)
+
+  // Relaciones
+  subscriptions void_subscriptions[]
+  profiles      void_profiles[]
+}
+
+enum Role {
+  VOID
+  USER
+  BETA
+  ADMIN
+}
+
+// --- 2. SISTEMA DE PERFILES (CONFIGS) ---
+
+model void_profiles {
+  id      String     @id @default(uuid())
+  user_id String
+  user    void_users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  name       String  @db.VarChar(50) // Ej: "Hypixel Legit"
+  is_default Boolean @default(false) // El perfil que carga al inyectar
 
   configs void_module_config[]
+
+  @@unique([user_id, name]) // Un usuario no puede tener 2 perfiles con el mismo nombre
 }
 
 model void_module_config {
-  id         String     @id @default(uuid())
-  user_id    String
-  user       void_users @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  module     String
-  action     String
-  settings   Json
-  conditions Json       @default("[]")
+  id         String        @id @default(uuid())
+  profile_id String
+  profile    void_profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
 
-  @@unique([user_id, module])
+  module     String @db.VarChar(50)
+  action     String @db.VarChar(20) // "enable" | "disable"
+  settings   Json
+  conditions Json   @default("[]")
+
+  @@unique([profile_id, module]) // Solo 1 config de AimAssist por Perfil
+}
+
+// --- 3. PRODUCTOS Y SUSCRIPCIONES (SaaS) ---
+
+model void_products {
+  id            String @id @default(uuid())
+  name          String @db.VarChar(250) // Ej: "The Void - 30 Dias"
+  price         Float
+  duration_days Int // Cuánto dura esta suscripción (ej: 30, 90, 9999 para lifetime)
+
+  modules       void_product_pivot[]
+  subscriptions void_subscriptions[]
+}
+
+model void_subscriptions {
+  id         String @id @default(uuid())
+  user_id    String
+  product_id String
+
+  user    void_users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  product void_products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  active     Boolean  @default(true)
+  starts_at  DateTime @default(now())
+  expires_at DateTime // Cuando llegue esta fecha, el cheat deja de inyectar
+
+  @@index([user_id])
+}
+
+model void_product_modules {
+  id     String  @id @default(uuid())
+  module String  @unique @db.VarChar(50) // Ej: "aim-assists"
+  active Boolean @default(true)
+
+  products void_product_pivot[]
+}
+
+model void_product_pivot {
+  product_id String
+  module_id  String
+
+  product void_products        @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  module  void_product_modules @relation(fields: [module_id], references: [id], onDelete: Cascade)
+
+  @@id([product_id, module_id])
+}
+
+// --- 4. FLUJO DE LOGIN WEB ---
+
+model void_hwid_bindings {
+  id         String   @id @default(uuid())
+  temp_hwid  String   @db.VarChar(255)
+  created_at DateTime @default(now())
+  expires_at DateTime
 }

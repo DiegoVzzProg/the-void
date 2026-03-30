@@ -1,64 +1,14 @@
-import { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import authController from "../controllers/authController";
-import commandController from "../controllers/commandController";
-import * as authSchema from "../schemas/authSchema";
-import commandSchema from "../schemas/commandSchema";
-import authenticate from "../middlewares/authMiddleware";
+import { FastifyInstance } from 'fastify';
+import { AuthRoutes } from '@/modules/auth';
+import { CommandRoutes } from '@/modules/commands';
 
-const api = async (fastify: FastifyInstance, options: FastifyPluginOptions) => {
-  fastify.post(
-    "/command",
-    { schema: commandSchema, onRequest: [authenticate] },
-    commandController.processCommand
-  );
+const api = async (fastify: FastifyInstance) => {
+  fastify.get('/', async (request, reply) => {
+    return { message: 'Welcome to The Void API' };
+  });
 
-  fastify.get(
-    "/command/load-config",
-    { onRequest: [authenticate] },
-    commandController.loadConfig
-  );
-
-  fastify.post(
-    "/auth/register",
-    {
-      schema: authSchema.register,
-      config: {
-        rateLimit: {
-          max: 5,
-          timeWindow: "1 hour",
-        },
-      },
-    },
-    authController.register
-  );
-
-  fastify.post(
-    "/auth/login",
-    {
-      schema: authSchema.login,
-      config: {
-        rateLimit: {
-          max: 5,
-          timeWindow: "1 hour",
-        },
-      },
-    },
-    authController.login
-  );
-
-  fastify.post(
-    "/auth/refresh-token",
-    {
-      schema: authSchema.refresh_token,
-      config: {
-        rateLimit: {
-          max: 3,
-          timeWindow: "1 hour",
-        },
-      },
-    },
-    authController.refreshToken
-  );
+  AuthRoutes.Routes(fastify);
+  CommandRoutes.Routes(fastify);
 };
 
 export default api;
